@@ -8,16 +8,15 @@ from pystac import (
     Catalog,
     CatalogType,
     Collection,
+    Extensions,
     Extent,
     Item,
-    LabelClasses,
-    LabelItem,
-    LabelType,
     Link,
     LinkType,
     SpatialExtent,
     TemporalExtent,
 )
+from pystac.extensions.label import LabelClasses, LabelType
 import rasterio
 from shapely.geometry import GeometryCollection, box, shape
 
@@ -129,20 +128,6 @@ def label_collection_add_items(
 
         item_id = os.path.basename(uri).split(".")[0]
         country, event_id, *_ = item_id.split("_")
-        params = {}
-        params["id"] = item_id
-        params["collection"] = collection
-        params["datetime"] = image_date_for_country("s1", country)
-        if isinstance(label_classes, list):
-            params["label_classes"] = label_classes
-        else:
-            params["label_classes"] = []
-        params["label_description"] = label_description
-        if label_tasks is not None:
-            params["label_tasks"] = label_tasks
-        params["label_type"] = label_type
-        params["properties"] = {}
-        params["stac_extensions"] = ["label"]
 
         # Get or Create sub catalog for event country
         country_catalog_id = "{}-{}".format(collection.id, country)
@@ -154,11 +139,28 @@ def label_collection_add_items(
             print("Add STAC Catalog {}".format(country_catalog.id))
             collection.add_child(country_catalog)
 
+        params = {}
+        params["id"] = item_id
+        params["collection"] = collection
+        params["datetime"] = image_date_for_country("s1", country)
+        params["stac_extensions"] = [Extensions.LABEL]
+        params["properties"] = {}
         with rasterio.open("/vsicurl/{}".format(uri)) as src:
             params["bbox"] = list(src.bounds)
             params["geometry"] = box(*params["bbox"]).__geo_interface__
 
-        item = LabelItem(**params)
+        label_ext_params = {}
+        if isinstance(label_classes, list):
+            label_ext_params["label_classes"] = label_classes
+        else:
+            label_ext_params["label_classes"] = []
+        label_ext_params["label_description"] = label_description
+        if label_tasks is not None:
+            label_ext_params["label_tasks"] = label_tasks
+        label_ext_params["label_type"] = label_type
+
+        item = Item(**params)
+        item.ext.label.apply(**label_ext_params)
         item.links = links_func(root_catalog, item, country, event_id)
 
         # Add Asset
@@ -324,7 +326,7 @@ of the label datasets.
         "S1WeakLabels",
         "A weakly supervised training dataset using Sentinel-1 based flood classifications as labels",  # noqa: ES01
         extent=Extent(SpatialExtent([None, None, None, None]), None),
-        stac_extensions=["label"],
+        stac_extensions=[Extensions.LABEL],
     )
     label_collection_add_items(
         s1weak_labels,
@@ -334,7 +336,7 @@ of the label datasets.
         "-1: No Data / Not Valid. 0: Not Water. 1: Water.",  # noqa: ES01
         LabelType.RASTER,
         label_classes=[LabelClasses([-1, 0, 1])],
-        label_tasks="classification",
+        label_tasks=["classification"],
     )
     collection_update_extents(s1weak_labels)
     catalog.add_child(s1weak_labels)
@@ -344,7 +346,7 @@ of the label datasets.
         "HandLabels",
         "Hand labeled chips of surface water from selected flood events",
         extent=Extent(SpatialExtent([None, None, None, None]), None),
-        stac_extensions=["label"],
+        stac_extensions=[Extensions.LABEL],
     )
     label_collection_add_items(
         hand_labels,
@@ -354,7 +356,7 @@ of the label datasets.
         "Hand labeled chips containing ground truth. -1: No Data / Not Valid. 0: Not Water. 1: Water.",  # noqa: ES01
         LabelType.RASTER,
         label_classes=[LabelClasses([-1, 0, 1])],
-        label_tasks="classification",
+        label_tasks=["classification"],
     )
     collection_update_extents(hand_labels)
     catalog.add_child(hand_labels)
@@ -364,7 +366,7 @@ of the label datasets.
         "PermanentLabels",
         "Permanent water chips generated from the 'transition' layer of the JRC (European Commission Joint Research Centre) dataset",  # noqa: ES01
         extent=Extent(SpatialExtent([None, None, None, None]), None),
-        stac_extensions=["label"],
+        stac_extensions=[Extensions.LABEL],
     )
     label_collection_add_items(
         permanent_labels,
@@ -374,7 +376,7 @@ of the label datasets.
         "0: Not Water. 1: Water.",
         LabelType.RASTER,
         label_classes=[LabelClasses([0, 1])],
-        label_tasks="classification",
+        label_tasks=["classification"],
     )
     collection_update_extents(permanent_labels)
     catalog.add_child(permanent_labels)
@@ -384,7 +386,7 @@ of the label datasets.
         "TraditionalLabels",
         "Water labels generated via traditional Otsu’s thresholding algorithm on the Sentinel 1 VH band",  # noqa: ES01
         extent=Extent(SpatialExtent([None, None, None, None]), None),
-        stac_extensions=["label"],
+        stac_extensions=[Extensions.LABEL],
     )
     label_collection_add_items(
         otsu_labels,
@@ -394,7 +396,7 @@ of the label datasets.
         "-1: No Data / Not Valid. 0: Not Water. 1: Water.",
         LabelType.RASTER,
         label_classes=[LabelClasses([-1, 0, 1])],
-        label_tasks="classification",
+        label_tasks=["classification"],
     )
     collection_update_extents(otsu_labels)
     catalog.add_child(otsu_labels)

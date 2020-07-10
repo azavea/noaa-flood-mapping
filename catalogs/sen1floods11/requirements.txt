@@ -1,5 +1,5 @@
 click==7.1.2
 google-cloud-storage==1.29.0
-pystac==0.3.4
+pystac==0.4.0
 rasterio==1.1.5
 shapely==1.7.0
