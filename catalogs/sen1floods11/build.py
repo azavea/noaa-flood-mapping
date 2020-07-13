@@ -170,8 +170,8 @@ def label_collection_add_items(
         print("Added STAC Item {}".format(item.id))
 
 
-def sentinel1_links_func(root_catalog, label_item, country, event_id):
-    """ links_func that looks up country + event id in only S1 """
+def derived_geotiff_links_for_items(items, label_item):
+    """ Maps input STAC Items (items) to relative "derived_from" geotiff Links """
     return [
         Link(
             "derived_from",
@@ -179,28 +179,36 @@ def sentinel1_links_func(root_catalog, label_item, country, event_id):
             link_type=LinkType.RELATIVE,
             media_type="image/tiff; application=geotiff",
         ).set_owner(label_item)
-        for o in [
-            root_catalog.get_item("{}_{}_S1".format(country, event_id), recursive=True),
-        ]
+        for o in items
         if o is not None
     ]
+
+
+def sentinel1_links_func(root_catalog, label_item, country, event_id):
+    """ links_func that looks up country + event id in only S1 """
+    return derived_geotiff_links_for_items(
+        [root_catalog.get_item("{}_{}_S1".format(country, event_id), recursive=True)],
+        label_item,
+    )
+
+
+def sentinel2_links_func(root_catalog, label_item, country, event_id):
+    """ links_func that looks up country + event id in only S2 """
+    return derived_geotiff_links_for_items(
+        [root_catalog.get_item("{}_{}_S2".format(country, event_id), recursive=True)],
+        label_item,
+    )
 
 
 def sentinel1_sentinel2_links_func(root_catalog, label_item, country, event_id):
     """ links_func that looks up country + event id in both S1 and S2 """
-    return [
-        Link(
-            "derived_from",
-            o,
-            link_type=LinkType.RELATIVE,
-            media_type="image/tiff; application=geotiff",
-        ).set_owner(label_item)
-        for o in [
+    return derived_geotiff_links_for_items(
+        [
             root_catalog.get_item("{}_{}_S1".format(country, event_id), recursive=True),
             root_catalog.get_item("{}_{}_S2".format(country, event_id), recursive=True),
-        ]
-        if o is not None
-    ]
+        ],
+        label_item,
+    )
 
 
 @click.command(help="Build STAC Catalog for sen1floods11")
@@ -337,6 +345,26 @@ of the label datasets.
     )
     collection_update_extents(s1weak_labels)
     catalog.add_child(s1weak_labels)
+
+    # Build S2 Weak Labels Collection
+    s2weak_labels = Collection(
+        "S2WeakLabels",
+        "A weakly supervised training dataset using traditional Sentinel-2 flood classifications as labels",  # noqa: E501
+        extent=Extent(SpatialExtent([None, None, None, None]), None),
+        stac_extensions=[Extensions.LABEL],
+    )
+    label_collection_add_items(
+        s2weak_labels,
+        catalog,
+        list(storage.ls("NoQC/"))[:2],
+        sentinel2_links_func,
+        "-1: No Data / Not Valid. 0: Not Water. 1: Water.",  # noqa: E501
+        LabelType.RASTER,
+        label_classes=[LabelClasses([-1, 0, 1])],
+        label_tasks=["classification"],
+    )
+    collection_update_extents(s2weak_labels)
+    catalog.add_child(s2weak_labels)
 
     # Build Hand Labels Collection
     hand_labels = Collection(
