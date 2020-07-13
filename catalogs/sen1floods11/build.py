@@ -291,8 +291,8 @@ of the label datasets.
     """
     storage = GoogleCloudStorage("cnn_chips")
 
-    catalog_description = "Bonafilia, D., Tellman, B., Anderson, T., Issenberg, E. 2020. Sen1Floods11: a georeferenced dataset to train and test deep learning flood algorithms for Sentinel-1. The IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Workshops, 2020, pp. 210-211. Available Open access at: http://openaccess.thecvf.com/content_CVPRW_2020/html/w11/Bonafilia_Sen1Floods11_A_Georeferenced_Dataset_to_Train_and_Test_Deep_Learning_CVPRW_2020_paper.html"  # noqa: ES01
-    catalog_title = "A georeferenced dataset to train and test deep learning flood algorithms for Sentinel-1"  # noqa: ES01
+    catalog_description = "Bonafilia, D., Tellman, B., Anderson, T., Issenberg, E. 2020. Sen1Floods11: a georeferenced dataset to train and test deep learning flood algorithms for Sentinel-1. The IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Workshops, 2020, pp. 210-211. Available Open access at: http://openaccess.thecvf.com/content_CVPRW_2020/html/w11/Bonafilia_Sen1Floods11_A_Georeferenced_Dataset_to_Train_and_Test_Deep_Learning_CVPRW_2020_paper.html"  # noqa: E501
+    catalog_title = "A georeferenced dataset to train and test deep learning flood algorithms for Sentinel-1"  # noqa: E501
 
     catalog = Catalog("sen1floods11", catalog_description, title=catalog_title)
     print("Created Catalog {}".format(catalog.id))
@@ -300,7 +300,7 @@ of the label datasets.
     # Build Sentinel 1 Collection
     sentinel1 = Collection(
         "Sentinel1",
-        "Raw Sentinel-1 imagery. IW mode, GRD product. See https://developers.google.com/earth-engine/sentinel1 for information on preprocessing",  # noqa: ES01
+        "Raw Sentinel-1 imagery. IW mode, GRD product. See https://developers.google.com/earth-engine/sentinel1 for information on preprocessing",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
     )
     print("Created STAC Collection: {}".format(sentinel1.id))
@@ -312,7 +312,7 @@ of the label datasets.
     # Build Sentinel 2 Collection
     sentinel2 = Collection(
         "Sentinel2",
-        "Raw Sentinel-2 MSI Level-1C imagery. Contains all spectral bands (1 - 12). Does not contain QA mask.",  # noqa: ES01
+        "Raw Sentinel-2 MSI Level-1C imagery. Contains all spectral bands (1 - 12). Does not contain QA mask.",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
     )
     print("Created STAC Collection: {}".format(sentinel2.id))
@@ -324,7 +324,7 @@ of the label datasets.
     # Build S1 Weak Labels Collection
     s1weak_labels = Collection(
         "S1WeakLabels",
-        "A weakly supervised training dataset using Sentinel-1 based flood classifications as labels",  # noqa: ES01
+        "A weakly supervised training dataset using Sentinel-1 based flood classifications as labels",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
         stac_extensions=[Extensions.LABEL],
     )
@@ -333,7 +333,7 @@ of the label datasets.
         catalog,
         list(storage.ls("S1Flood_NoQC/"))[:2],
         sentinel1_links_func,
-        "-1: No Data / Not Valid. 0: Not Water. 1: Water.",  # noqa: ES01
+        "-1: No Data / Not Valid. 0: Not Water. 1: Water.",  # noqa: E501
         LabelType.RASTER,
         label_classes=[LabelClasses([-1, 0, 1])],
         label_tasks=["classification"],
@@ -353,7 +353,7 @@ of the label datasets.
         catalog,
         list(storage.ls("QC_v2/"))[:2],
         sentinel1_sentinel2_links_func,
-        "Hand labeled chips containing ground truth. -1: No Data / Not Valid. 0: Not Water. 1: Water.",  # noqa: ES01
+        "Hand labeled chips containing ground truth. -1: No Data / Not Valid. 0: Not Water. 1: Water.",  # noqa: E501
         LabelType.RASTER,
         label_classes=[LabelClasses([-1, 0, 1])],
         label_tasks=["classification"],
@@ -364,7 +364,7 @@ of the label datasets.
     # Build Permanent Labels collection
     permanent_labels = Collection(
         "PermanentLabels",
-        "Permanent water chips generated from the 'transition' layer of the JRC (European Commission Joint Research Centre) dataset",  # noqa: ES01
+        "Permanent water chips generated from the 'transition' layer of the JRC (European Commission Joint Research Centre) dataset",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
         stac_extensions=[Extensions.LABEL],
     )
@@ -384,7 +384,7 @@ of the label datasets.
     # Build Otsu algorithm Labels collection
     otsu_labels = Collection(
         "TraditionalLabels",
-        "Water labels generated via traditional Otsu’s thresholding algorithm on the Sentinel 1 VH band",  # noqa: ES01
+        "Water labels generated via traditional Otsu’s thresholding algorithm on the Sentinel 1 VH band",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
         stac_extensions=[Extensions.LABEL],
     )
