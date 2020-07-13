@@ -25,10 +25,7 @@ from storage.cloud_storage import GoogleCloudStorage
 
 def image_date_for_country(sentinel_version, country):
     """ Returns Datetime for country from metadata or None if no result """
-    cnn_chips_geojson_file = "./data/CNN_Chips_FTC.geojson"
-    GoogleCloudStorage("cnn_chips").download(
-        os.path.basename(cnn_chips_geojson_file), cnn_chips_geojson_file
-    )
+    cnn_chips_geojson_file = "./chips_metadata.geojson"
     f = open(cnn_chips_geojson_file)
     chip_metadata = json.load(f)
     f.close()
