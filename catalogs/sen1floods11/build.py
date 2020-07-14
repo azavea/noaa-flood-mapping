@@ -270,8 +270,8 @@ of the label datasets.
         "Sentinel-1 GRD Chips overlapping labeled data. IW mode, GRD product. See https://developers.google.com/earth-engine/sentinel1 for information on preprocessing",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
     )
-    collection_add_sentinel_chips(sentinel1, list(storage.ls("S1/"))[:2], "s1")
-    collection_add_sentinel_chips(sentinel1, list(storage.ls("S1_NoQC/"))[:2], "s1")
+    collection_add_sentinel_chips(sentinel1, storage.ls("S1/"), "s1")
+    collection_add_sentinel_chips(sentinel1, storage.ls("S1_NoQC/"), "s1")
     collection_update_extents(sentinel1)
     catalog.add_child(sentinel1)
 
@@ -281,8 +281,8 @@ of the label datasets.
         "Sentinel-2 MSI L1C chips overlapping labeled data. Contains all spectral bands (1 - 12). Does not contain QA mask.",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
     )
-    collection_add_sentinel_chips(sentinel2, list(storage.ls("S2/"))[:2], "s2")
-    collection_add_sentinel_chips(sentinel2, list(storage.ls("S2_NoQC/"))[:2], "s2")
+    collection_add_sentinel_chips(sentinel2, storage.ls("S2/"), "s2")
+    collection_add_sentinel_chips(sentinel2, storage.ls("S2_NoQC/"), "s2")
     collection_update_extents(sentinel2)
     catalog.add_child(sentinel2)
 
@@ -296,7 +296,7 @@ of the label datasets.
     label_collection_add_items(
         s1weak_labels,
         catalog,
-        list(storage.ls("S1Flood_NoQC/"))[:2],
+        storage.ls("S1Flood_NoQC/"),
         sentinel1_links_func,
         "0: Not Water. 1: Water.",
         LabelType.RASTER,
@@ -316,7 +316,7 @@ of the label datasets.
     label_collection_add_items(
         s2weak_labels,
         catalog,
-        list(storage.ls("NoQC/"))[:2],
+        storage.ls("NoQC/"),
         sentinel2_links_func,
         "-1: No Data / Not Valid. 0: Not Water. 1: Water.",  # noqa: E501
         LabelType.RASTER,
@@ -336,7 +336,7 @@ of the label datasets.
     label_collection_add_items(
         hand_labels,
         catalog,
-        list(storage.ls("QC_v2/"))[:2],
+        storage.ls("QC_v2/"),
         sentinel1_sentinel2_links_func,
         "Hand labeled chips containing ground truth. -1: No Data / Not Valid. 0: Not Water. 1: Water.",  # noqa: E501
         LabelType.RASTER,
@@ -356,7 +356,7 @@ of the label datasets.
     label_collection_add_items(
         permanent_labels,
         catalog,
-        list(storage.ls("Perm/"))[:2],
+        storage.ls("Perm/"),
         lambda *_: [],  # No easy way to map JRC source files to the label chips...
         "0: Not Water. 1: Water.",
         LabelType.RASTER,
@@ -376,7 +376,7 @@ of the label datasets.
     label_collection_add_items(
         otsu_labels,
         catalog,
-        list(storage.ls("S1Flood/"))[:2],
+        storage.ls("S1Flood/"),
         sentinel1_links_func,
         "0: Not Water. 1: Water.",
         LabelType.RASTER,
