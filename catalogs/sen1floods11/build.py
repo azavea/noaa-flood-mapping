@@ -20,7 +20,7 @@ from pystac.extensions.label import LabelClasses, LabelType
 import rasterio
 from shapely.geometry import GeometryCollection, box, shape
 
-from storage.cloud_storage import GoogleCloudStorage
+from storage.cloud_storage import S3Storage
 
 
 def image_date_for_country(sentinel_version, country):
@@ -70,7 +70,7 @@ def collection_add_sentinel_chips(collection, uri_list, sentinel_version):
             "event_id": event_id,
         }
 
-        with rasterio.open("/vsicurl/{}".format(uri)) as src:
+        with rasterio.open(uri) as src:
             params["bbox"] = list(src.bounds)
             params["geometry"] = box(*params["bbox"]).__geo_interface__
 
@@ -129,7 +129,7 @@ def label_collection_add_items(
             "country": country,
             "event_id": event_id,
         }
-        with rasterio.open("/vsicurl/{}".format(uri)) as src:
+        with rasterio.open(uri) as src:
             params["bbox"] = list(src.bounds)
             params["geometry"] = box(*params["bbox"]).__geo_interface__
 
@@ -256,7 +256,7 @@ of the label datasets.
             - Catalog: Lon 10
                 - Item: (dir: PermJRC)
     """
-    storage = GoogleCloudStorage("cnn_chips")
+    storage = S3Storage("sen1floods11-data")
 
     catalog_description = "Bonafilia, D., Tellman, B., Anderson, T., Issenberg, E. 2020. Sen1Floods11: a georeferenced dataset to train and test deep learning flood algorithms for Sentinel-1. The IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Workshops, 2020, pp. 210-211. Available Open access at: http://openaccess.thecvf.com/content_CVPRW_2020/html/w11/Bonafilia_Sen1Floods11_A_Georeferenced_Dataset_to_Train_and_Test_Deep_Learning_CVPRW_2020_paper.html"  # noqa: E501
     catalog_title = "A georeferenced dataset to train and test deep learning flood algorithms for Sentinel-1"  # noqa: E501
