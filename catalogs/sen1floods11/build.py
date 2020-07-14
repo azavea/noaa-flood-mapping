@@ -83,7 +83,7 @@ def collection_add_sentinel_chips(collection, uri_list, sentinel_version):
         )
         item.add_asset(key="image", asset=asset)
         collection.add_item(item)
-        print("Added STAC Item {}".format(item.id))
+        print("Collection {}: Added STAC Item {}".format(collection.id, item.id))
 
 
 def label_collection_add_items(
@@ -107,7 +107,8 @@ def label_collection_add_items(
                        country: str,
                        event_id: int): [Link]
     This method should construct a list of links that map the label_item to the STAC objects in
-    the root_catalog that label_item is derived from.
+    the root_catalog that label_item is derived from. Assumes for now that the asset referenced
+    uses the key "labels"
 
     The label_ arguments will be passed down to each LabelItem in the collection
 
@@ -144,26 +145,27 @@ def label_collection_add_items(
 
         item = Item(**params)
         item.ext.label.apply(**label_ext_params)
-        item.links = links_func(root_catalog, item, country, event_id)
-
         # Add Asset
         asset = Asset(
             href=uri, title="GeoTiff", media_type="image/tiff; application=geotiff"
         )
-        item.add_asset(key="image", asset=asset)
+        item.add_asset(key="labels", asset=asset)
+
+        item.links = links_func(root_catalog, item, country, event_id)
 
         collection.add_item(item)
-        print("Added STAC Item {}".format(item.id))
+        print("Collection {}: Added STAC Item {}".format(collection.id, item.id))
 
 
-def derived_geotiff_links_for_items(items, label_item):
-    """ Maps input STAC Items (items) to relative "derived_from" geotiff Links """
+def source_links_for_labels(items, label_item):
+    """ Maps input STAC Items (items) to label_item "labels" via label extension "source" Links """
     return [
         Link(
-            "derived_from",
+            "source",
             o,
             link_type=LinkType.RELATIVE,
             media_type="image/tiff; application=geotiff",
+            properties={"label:assets": "labels"},
         ).set_owner(label_item)
         for o in items
         if o is not None
@@ -172,7 +174,7 @@ def derived_geotiff_links_for_items(items, label_item):
 
 def sentinel1_links_func(root_catalog, label_item, country, event_id):
     """ links_func that looks up country + event id in only S1 """
-    return derived_geotiff_links_for_items(
+    return source_links_for_labels(
         [root_catalog.get_item("{}_{}_S1".format(country, event_id), recursive=True)],
         label_item,
     )
@@ -180,7 +182,7 @@ def sentinel1_links_func(root_catalog, label_item, country, event_id):
 
 def sentinel2_links_func(root_catalog, label_item, country, event_id):
     """ links_func that looks up country + event id in only S2 """
-    return derived_geotiff_links_for_items(
+    return source_links_for_labels(
         [root_catalog.get_item("{}_{}_S2".format(country, event_id), recursive=True)],
         label_item,
     )
@@ -188,9 +190,9 @@ def sentinel2_links_func(root_catalog, label_item, country, event_id):
 
 def sentinel1_sentinel2_links_func(root_catalog, label_item, country, event_id):
     """ links_func that looks up country + event id in both S1 and S2 """
-    return derived_geotiff_links_for_items(
+    return source_links_for_labels(
         [
-            root_catalog.get_item("{}_{}_S2".format(country, event_id), recursive=True),
+            root_catalog.get_item("{}_{}_S1".format(country, event_id), recursive=True),
             root_catalog.get_item("{}_{}_S2".format(country, event_id), recursive=True),
         ],
         label_item,
@@ -268,7 +270,6 @@ of the label datasets.
         "Sentinel-1 GRD Chips overlapping labeled data. IW mode, GRD product. See https://developers.google.com/earth-engine/sentinel1 for information on preprocessing",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
     )
-    print("Created STAC Collection: {}".format(sentinel1.id))
     collection_add_sentinel_chips(sentinel1, list(storage.ls("S1/"))[:2], "s1")
     collection_add_sentinel_chips(sentinel1, list(storage.ls("S1_NoQC/"))[:2], "s1")
     collection_update_extents(sentinel1)
@@ -280,7 +281,6 @@ of the label datasets.
         "Sentinel-2 MSI L1C chips overlapping labeled data. Contains all spectral bands (1 - 12). Does not contain QA mask.",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
     )
-    print("Created STAC Collection: {}".format(sentinel2.id))
     collection_add_sentinel_chips(sentinel2, list(storage.ls("S2/"))[:2], "s2")
     collection_add_sentinel_chips(sentinel2, list(storage.ls("S2_NoQC/"))[:2], "s2")
     collection_update_extents(sentinel2)
