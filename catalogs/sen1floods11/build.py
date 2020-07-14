@@ -61,21 +61,14 @@ def collection_add_sentinel_chips(collection, uri_list, sentinel_version):
             continue
 
         item_id = os.path.basename(uri).split(".")[0]
-        country, *_ = item_id.split("_")
+        country, event_id, *_ = item_id.split("_")
         params = {}
         params["id"] = item_id
         params["collection"] = collection
-        params["properties"] = {}
-
-        # Get or Create sub catalog for event country
-        country_catalog_id = "{}-{}".format(sentinel_version.upper(), country)
-        country_catalog = collection.get_child(country_catalog_id, recursive=False)
-        if country_catalog is None:
-            country_catalog = Catalog(
-                country_catalog_id, "Flood Chips in {}".format(country)
-            )
-            print("Add STAC Catalog {}".format(country_catalog.id))
-            collection.add_child(country_catalog)
+        params["properties"] = {
+            "country": country,
+            "event_id": event_id,
+        }
 
         with rasterio.open("/vsicurl/{}".format(uri)) as src:
             params["bbox"] = list(src.bounds)
@@ -89,7 +82,7 @@ def collection_add_sentinel_chips(collection, uri_list, sentinel_version):
             href=uri, title="GeoTiff", media_type="image/tiff; application=geotiff"
         )
         item.add_asset(key="image", asset=asset)
-        country_catalog.add_item(item)
+        collection.add_item(item)
         print("Added STAC Item {}".format(item.id))
 
 
@@ -126,22 +119,15 @@ def label_collection_add_items(
         item_id = os.path.basename(uri).split(".")[0]
         country, event_id, *_ = item_id.split("_")
 
-        # Get or Create sub catalog for event country
-        country_catalog_id = "{}-{}".format(collection.id, country)
-        country_catalog = collection.get_child(country_catalog_id, recursive=False)
-        if country_catalog is None:
-            country_catalog = Catalog(
-                country_catalog_id, "Flood Chips in {}".format(country)
-            )
-            print("Add STAC Catalog {}".format(country_catalog.id))
-            collection.add_child(country_catalog)
-
         params = {}
         params["id"] = item_id
         params["collection"] = collection
         params["datetime"] = image_date_for_country("s1", country)
         params["stac_extensions"] = [Extensions.LABEL]
-        params["properties"] = {}
+        params["properties"] = {
+            "country": country,
+            "event_id": event_id,
+        }
         with rasterio.open("/vsicurl/{}".format(uri)) as src:
             params["bbox"] = list(src.bounds)
             params["geometry"] = box(*params["bbox"]).__geo_interface__
@@ -166,7 +152,7 @@ def label_collection_add_items(
         )
         item.add_asset(key="image", asset=asset)
 
-        country_catalog.add_item(item)
+        collection.add_item(item)
         print("Added STAC Item {}".format(item.id))
 
 
@@ -204,7 +190,7 @@ def sentinel1_sentinel2_links_func(root_catalog, label_item, country, event_id):
     """ links_func that looks up country + event id in both S1 and S2 """
     return derived_geotiff_links_for_items(
         [
-            root_catalog.get_item("{}_{}_S1".format(country, event_id), recursive=True),
+            root_catalog.get_item("{}_{}_S2".format(country, event_id), recursive=True),
             root_catalog.get_item("{}_{}_S2".format(country, event_id), recursive=True),
         ],
         label_item,
@@ -220,22 +206,6 @@ def main():
 446 qc'ed chips containing flood events, hand-labeled flood classifications
 4385 non-qc'ed chips containing water exported only with sentinel 1 and 2 flood classifications
 
-hand-labeled chips listed in CNN_Chips_FTC.geojson
-
-- NoQC: 4385 tifs ???
-- Perm: 446 tifs of JRC data in PermJRC resampled to chips matching hand labeled classifications
-- PermJRC: tifs of JRC permanent water classifications
-- QC_v2: 446 tifs of hand labeled chips flood classifications
-- S1: 446 Sentinel 1 tifs resampled to chips matching hand labeled classifications
-- S1_NoQC: 4385 Sentinel 1 tifs resampled to chips
-- S1Flood: 446 tifs of flood classification computed via Otsu threshold (traditional) algorithm
-           available for hand-labeled chip
-- S1Flood_NoQC: 4385 tifs of flood classification computed via automated "weak" algorithm
-- S2: Sentinel 2 tifs resampled to chips matching hand labeled classifications
-- S2Flood: 7 tifs of flood classification computed via Otsu threshold (traditional) algorithm
-           available for hand-labeled chips
-- S2_NoQC: 4385 Sentinel 2 tifs resampled to chips
-
 # The Catalog Outline
 
 ** We want to generate a root catalog that is all, or only training, or only validation items **
@@ -243,27 +213,19 @@ hand-labeled chips listed in CNN_Chips_FTC.geojson
 
 - Root Catalog
     - Collection: Sentinel 1 data chips
-        - Catalog: Event (Country)
-            - Item: The Item
+        - Item: The Item
     - Collection: Sentinel 2 data chips
-        - Catalog: Event (Country)
-            - Item: The Item
-    - Collection: JRC Raw data
-        - Catalog: Lat bucket
-            - Catalog: Lon bucket
-                - Item: The Item
+        - Item: The Item
     - Collection: Sentinel 1 weak labels
-        - Catalog: Event (Country)
-            - Item: The Item
+        - Item: The Item
+    - Collection: Sentinel 2 weak labels
+        - Item: The Item
     - Collection: Hand labels
-        - Catalog: Event (Country)
-            - Item: The Item
+        - Item: The Item
     - Collection: Permanent water labels
-        - Catalog: Event (Country)
-            - Item: The Item
+        - Item: The Item
     - Collection: Traditional otsu algo labels
-        - Catalog: Event (Country)
-            - Item: The Item
+        - Item: The Item
 
 ## Alternate catalog structure
 
@@ -291,8 +253,6 @@ of the label datasets.
         - Catalog: Lat 10
             - Catalog: Lon 10
                 - Item: (dir: PermJRC)
-
-
     """
     storage = GoogleCloudStorage("cnn_chips")
 
