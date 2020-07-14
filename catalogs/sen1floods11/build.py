@@ -264,8 +264,8 @@ of the label datasets.
 
     # Build Sentinel 1 Collection
     sentinel1 = Collection(
-        "Sentinel1",
-        "Raw Sentinel-1 imagery. IW mode, GRD product. See https://developers.google.com/earth-engine/sentinel1 for information on preprocessing",  # noqa: E501
+        "S1",
+        "Sentinel-1 GRD Chips overlapping labeled data. IW mode, GRD product. See https://developers.google.com/earth-engine/sentinel1 for information on preprocessing",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
     )
     print("Created STAC Collection: {}".format(sentinel1.id))
@@ -276,8 +276,8 @@ of the label datasets.
 
     # Build Sentinel 2 Collection
     sentinel2 = Collection(
-        "Sentinel2",
-        "Raw Sentinel-2 MSI Level-1C imagery. Contains all spectral bands (1 - 12). Does not contain QA mask.",  # noqa: E501
+        "S2",
+        "Sentinel-2 MSI L1C chips overlapping labeled data. Contains all spectral bands (1 - 12). Does not contain QA mask.",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
     )
     print("Created STAC Collection: {}".format(sentinel2.id))
@@ -288,8 +288,8 @@ of the label datasets.
 
     # Build S1 Weak Labels Collection
     s1weak_labels = Collection(
-        "S1WeakLabels",
-        "A weakly supervised training dataset using Sentinel-1 based flood classifications as labels",  # noqa: E501
+        "S1Flood_NoQC",
+        "Chips of water/nowater labels derived from standard OTSU thresholding of Sentinel-1 VH band overlapping weakly-labeled data.",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
         stac_extensions=[Extensions.LABEL],
     )
@@ -298,9 +298,9 @@ of the label datasets.
         catalog,
         list(storage.ls("S1Flood_NoQC/"))[:2],
         sentinel1_links_func,
-        "-1: No Data / Not Valid. 0: Not Water. 1: Water.",  # noqa: E501
+        "0: Not Water. 1: Water.",
         LabelType.RASTER,
-        label_classes=[LabelClasses([-1, 0, 1])],
+        label_classes=[LabelClasses([0, 1])],
         label_tasks=["classification"],
     )
     collection_update_extents(s1weak_labels)
@@ -308,8 +308,8 @@ of the label datasets.
 
     # Build S2 Weak Labels Collection
     s2weak_labels = Collection(
-        "S2WeakLabels",
-        "A weakly supervised training dataset using traditional Sentinel-2 flood classifications as labels",  # noqa: E501
+        "NoQC",
+        "Weakly-labeled chips derived from traditional Sentinel-2 Classification",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
         stac_extensions=[Extensions.LABEL],
     )
@@ -328,8 +328,8 @@ of the label datasets.
 
     # Build Hand Labels Collection
     hand_labels = Collection(
-        "HandLabels",
-        "Hand labeled chips of surface water from selected flood events",
+        "QC_v2",
+        "446 hand labeled chips of surface water from selected flood events",
         extent=Extent(SpatialExtent([None, None, None, None]), None),
         stac_extensions=[Extensions.LABEL],
     )
@@ -348,7 +348,7 @@ of the label datasets.
 
     # Build Permanent Labels collection
     permanent_labels = Collection(
-        "PermanentLabels",
+        "Perm",
         "Permanent water chips generated from the 'transition' layer of the JRC (European Commission Joint Research Centre) dataset",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
         stac_extensions=[Extensions.LABEL],
@@ -368,8 +368,8 @@ of the label datasets.
 
     # Build Otsu algorithm Labels collection
     otsu_labels = Collection(
-        "TraditionalLabels",
-        "Water labels generated via traditional Otsu’s thresholding algorithm on the Sentinel 1 VH band",  # noqa: E501
+        "S1Flood",
+        "Chips of water/nowater derived from standard OTSU thresholding of Sentinel-1 VH band overlapping labeled data",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
         stac_extensions=[Extensions.LABEL],
     )
@@ -378,9 +378,9 @@ of the label datasets.
         catalog,
         list(storage.ls("S1Flood/"))[:2],
         sentinel1_links_func,
-        "-1: No Data / Not Valid. 0: Not Water. 1: Water.",
+        "0: Not Water. 1: Water.",
         LabelType.RASTER,
-        label_classes=[LabelClasses([-1, 0, 1])],
+        label_classes=[LabelClasses([0, 1])],
         label_tasks=["classification"],
     )
     collection_update_extents(otsu_labels)
