@@ -54,16 +54,24 @@ def get_chip_bbox(uri, country, event_id):
 
 def image_date_for_country(sentinel_version, country):
     """ Returns Datetime for country from metadata or None if no result """
+    # Misnamed country id in tiffs -- here's a nice hack to get info from metadata...
+    if country == "Mekong":
+        country = "Cambodia"
     cnn_chips_geojson_file = "./chips_metadata.geojson"
     f = open(cnn_chips_geojson_file)
     chip_metadata = json.load(f)
     f.close()
     metadata = next(
-        (x for x in chip_metadata["features"] if x["id"].startswith(country)), None,
+        (
+            x
+            for x in chip_metadata["features"]
+            if x["properties"]["location"] == country
+        ),
+        None,
     )
     if metadata is not None:
         date_field = "{}_date".format(sentinel_version.lower())
-        return datetime.strptime(metadata["properties"][date_field], "%Y-%m-%d")
+        return datetime.strptime(metadata["properties"][date_field], "%Y/%m/%d")
     else:
         print("WARN: No image date for {} {}".format(sentinel_version, country))
         return None
