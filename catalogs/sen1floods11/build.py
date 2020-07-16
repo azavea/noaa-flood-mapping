@@ -23,6 +23,35 @@ from shapely.geometry import GeometryCollection, box, shape
 from storage.cloud_storage import S3Storage
 
 
+def chip_cache_id(country, event_id):
+    return "{}_{}".format(country, event_id)
+
+
+# Remote Rasterio reads for bbox take forever. We can optimize by caching bbox for a given
+# chip after its first read as all chips with the same country+event_id have the same bbox
+CHIP_BBOX_CACHE = {}
+
+# pystac walks to find source sentinel chips also take forever. So lets just cache refs to them
+# here instead since we visit and construct them all before we need to reference them in the
+# associate LabelItems
+SENTINEL_CHIP_ITEM_CACHE = {
+    "S1": {},
+    "S2": {},
+}
+
+
+def get_chip_bbox(uri, country, event_id):
+    cache_key = chip_cache_id(country, event_id)
+    bbox = CHIP_BBOX_CACHE.get(cache_key, None)
+    if bbox is None:
+        with rasterio.open(uri) as src:
+            new_bbox = list(src.bounds)
+            CHIP_BBOX_CACHE[cache_key] = new_bbox
+            return new_bbox
+    else:
+        return bbox
+
+
 def image_date_for_country(sentinel_version, country):
     """ Returns Datetime for country from metadata or None if no result """
     cnn_chips_geojson_file = "./chips_metadata.geojson"
@@ -36,6 +65,7 @@ def image_date_for_country(sentinel_version, country):
         date_field = "{}_date".format(sentinel_version.lower())
         return datetime.strptime(metadata["properties"][date_field], "%Y-%m-%d")
     else:
+        print("WARN: No image date for {} {}".format(sentinel_version, country))
         return None
 
 
@@ -45,16 +75,26 @@ def collection_update_extents(collection):
     ).bounds
     collection.extent.spatial = SpatialExtent(bounds)
 
-    t_min = min([i.datetime for i in collection.get_all_items()])
-    t_max = max([i.datetime for i in collection.get_all_items()])
-    if t_min == t_max:
-        collection.extent.temporal = TemporalExtent([(t_min, None)])
+    dates = {
+        i.datetime
+        for i in collection.get_all_items()
+        if isinstance(i.datetime, datetime)
+    }
+    if len(dates) == 1:
+        collection.extent.temporal = TemporalExtent([(next(iter(dates)), None)])
+    elif len(dates) > 1:
+        collection.extent.temporal = TemporalExtent([(min(dates), max(dates))])
     else:
-        collection.extent.temporal = TemporalExtent([(t_min, t_max)])
+        print("WARN: {} has no TemporalExtent. Dates: {}".format(collection.id, dates))
+        collection.extent.temporal = TemporalExtent(
+            [(datetime(1900, 1, 1, 0, 0, 0), None)]
+        )
 
 
-def collection_add_sentinel_chips(collection, uri_list, sentinel_version):
+def collection_add_sentinel_chips(collection, uri_list, sentinel_version, debug=False):
     """ Add sentinel images to a collection """
+    if debug:
+        uri_list = list(uri_list)[:10]
     for uri in uri_list:
 
         if not uri.endswith(".tif"):
@@ -69,10 +109,8 @@ def collection_add_sentinel_chips(collection, uri_list, sentinel_version):
             "country": country,
             "event_id": event_id,
         }
-
-        with rasterio.open(uri) as src:
-            params["bbox"] = list(src.bounds)
-            params["geometry"] = box(*params["bbox"]).__geo_interface__
+        params["bbox"] = get_chip_bbox(uri, country, event_id)
+        params["geometry"] = box(*params["bbox"]).__geo_interface__
 
         params["datetime"] = image_date_for_country(sentinel_version, country)
 
@@ -82,6 +120,9 @@ def collection_add_sentinel_chips(collection, uri_list, sentinel_version):
             href=uri, title="GeoTiff", media_type="image/tiff; application=geotiff"
         )
         item.add_asset(key="image", asset=asset)
+        SENTINEL_CHIP_ITEM_CACHE[sentinel_version.upper()][
+            chip_cache_id(country, event_id)
+        ] = item
         collection.add_item(item)
         print("Collection {}: Added STAC Item {}".format(collection.id, item.id))
 
@@ -95,6 +136,7 @@ def label_collection_add_items(
     label_type,
     label_classes=None,
     label_tasks=None,
+    debug=False,
 ):
     """ Add uri_list tif uris to collection as LabelItems
 
@@ -113,6 +155,8 @@ def label_collection_add_items(
     The label_ arguments will be passed down to each LabelItem in the collection
 
     """
+    if debug:
+        uri_list = list(uri_list)[:10]
     for uri in uri_list:
         if not uri.endswith(".tif"):
             continue
@@ -129,9 +173,8 @@ def label_collection_add_items(
             "country": country,
             "event_id": event_id,
         }
-        with rasterio.open(uri) as src:
-            params["bbox"] = list(src.bounds)
-            params["geometry"] = box(*params["bbox"]).__geo_interface__
+        params["bbox"] = get_chip_bbox(uri, country, event_id)
+        params["geometry"] = box(*params["bbox"]).__geo_interface__
 
         label_ext_params = {}
         if isinstance(label_classes, list):
@@ -175,7 +218,7 @@ def source_links_for_labels(items, label_item):
 def sentinel1_links_func(root_catalog, label_item, country, event_id):
     """ links_func that looks up country + event id in only S1 """
     return source_links_for_labels(
-        [root_catalog.get_item("{}_{}_S1".format(country, event_id), recursive=True)],
+        [SENTINEL_CHIP_ITEM_CACHE["S1"].get(chip_cache_id(country, event_id), None)],
         label_item,
     )
 
@@ -183,24 +226,26 @@ def sentinel1_links_func(root_catalog, label_item, country, event_id):
 def sentinel2_links_func(root_catalog, label_item, country, event_id):
     """ links_func that looks up country + event id in only S2 """
     return source_links_for_labels(
-        [root_catalog.get_item("{}_{}_S2".format(country, event_id), recursive=True)],
+        [SENTINEL_CHIP_ITEM_CACHE["S2"].get(chip_cache_id(country, event_id), None)],
         label_item,
     )
 
 
 def sentinel1_sentinel2_links_func(root_catalog, label_item, country, event_id):
     """ links_func that looks up country + event id in both S1 and S2 """
+    cache_id = chip_cache_id(country, event_id)
     return source_links_for_labels(
         [
-            root_catalog.get_item("{}_{}_S1".format(country, event_id), recursive=True),
-            root_catalog.get_item("{}_{}_S2".format(country, event_id), recursive=True),
+            SENTINEL_CHIP_ITEM_CACHE["S1"].get(cache_id, None),
+            SENTINEL_CHIP_ITEM_CACHE["S2"].get(cache_id, None),
         ],
         label_item,
     )
 
 
 @click.command(help="Build STAC Catalog for sen1floods11")
-def main():
+@click.option("--debug", is_flag=True)
+def main(debug):
     """
 
 # The Data
@@ -270,8 +315,8 @@ of the label datasets.
         "Sentinel-1 GRD Chips overlapping labeled data. IW mode, GRD product. See https://developers.google.com/earth-engine/sentinel1 for information on preprocessing",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
     )
-    collection_add_sentinel_chips(sentinel1, storage.ls("S1/"), "s1")
-    collection_add_sentinel_chips(sentinel1, storage.ls("S1_NoQC/"), "s1")
+    collection_add_sentinel_chips(sentinel1, storage.ls("S1/"), "s1", debug=debug)
+    collection_add_sentinel_chips(sentinel1, storage.ls("S1_NoQC/"), "s1", debug=debug)
     collection_update_extents(sentinel1)
     catalog.add_child(sentinel1)
 
@@ -281,8 +326,8 @@ of the label datasets.
         "Sentinel-2 MSI L1C chips overlapping labeled data. Contains all spectral bands (1 - 12). Does not contain QA mask.",  # noqa: E501
         extent=Extent(SpatialExtent([None, None, None, None]), None),
     )
-    collection_add_sentinel_chips(sentinel2, storage.ls("S2/"), "s2")
-    collection_add_sentinel_chips(sentinel2, storage.ls("S2_NoQC/"), "s2")
+    collection_add_sentinel_chips(sentinel2, storage.ls("S2/"), "s2", debug=debug)
+    collection_add_sentinel_chips(sentinel2, storage.ls("S2_NoQC/"), "s2", debug=debug)
     collection_update_extents(sentinel2)
     catalog.add_child(sentinel2)
 
@@ -302,6 +347,7 @@ of the label datasets.
         LabelType.RASTER,
         label_classes=[LabelClasses([0, 1])],
         label_tasks=["classification"],
+        debug=debug,
     )
     collection_update_extents(s1weak_labels)
     catalog.add_child(s1weak_labels)
@@ -322,6 +368,7 @@ of the label datasets.
         LabelType.RASTER,
         label_classes=[LabelClasses([-1, 0, 1])],
         label_tasks=["classification"],
+        debug=debug,
     )
     collection_update_extents(s2weak_labels)
     catalog.add_child(s2weak_labels)
@@ -342,6 +389,7 @@ of the label datasets.
         LabelType.RASTER,
         label_classes=[LabelClasses([-1, 0, 1])],
         label_tasks=["classification"],
+        debug=debug,
     )
     collection_update_extents(hand_labels)
     catalog.add_child(hand_labels)
@@ -362,6 +410,7 @@ of the label datasets.
         LabelType.RASTER,
         label_classes=[LabelClasses([0, 1])],
         label_tasks=["classification"],
+        debug=debug,
     )
     collection_update_extents(permanent_labels)
     catalog.add_child(permanent_labels)
@@ -382,6 +431,7 @@ of the label datasets.
         LabelType.RASTER,
         label_classes=[LabelClasses([0, 1])],
         label_tasks=["classification"],
+        debug=debug,
     )
     collection_update_extents(otsu_labels)
     catalog.add_child(otsu_labels)
