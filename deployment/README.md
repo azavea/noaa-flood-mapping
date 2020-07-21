@@ -1,7 +1,6 @@
 # Deployment
 
 - [AWS Credentials](#aws-credentials)
-- [Publish Container Images](#publish-container-images)
 - [Terraform](#terraform)
 
 ## AWS Credentials
@@ -25,13 +24,13 @@ First, we need to make sure there is a `terraform.tfvars` file in the project se
 Here is an example `terraform.tfvars` for this project:
 
 ```hcl
-project     = "Flood Mapping"
+project     = "Flood Map"
 environment = "Staging"
 aws_region  = "us-east-1"
 
-aws_key_name = "floodmapping-stg"
+aws_key_name = "floodmap-stg"
 
-r53_private_hosted_zone = "floodmapping.noaa.internal"
+r53_private_hosted_zone = "floodmap.noaa.internal"
 
 external_access_cidr_block = "127.0.0.1/32"
 
@@ -39,13 +38,13 @@ bastion_ami           = "ami-0a887e401f7654935"
 bastion_instance_type = "t3.nano"
 bastion_ebs_optimized = true
 
-rds_database_identifier = floodmapping-staging
-rds_database_name       = floodmapping
-rds_database_username   = floodmapping
-rds_database_password   = floodmapping
+rds_database_identifier = floodmap-staging
+rds_database_name       = floodmap
+rds_database_username   = floodmap
+rds_database_password   = floodmap
 ```
 
-This file lives at `s3://floodmapping-staging-config-us-east-1/terraform/terraform.tfvars`.
+This file lives at `s3://floodmap-staging-config-us-east-1/terraform/terraform.tfvars`.
 
 To deploy this project's core infrastructure, use the `infra` wrapper script to lookup the remote state of the infrastructure and assemble a plan for work to be done:
 

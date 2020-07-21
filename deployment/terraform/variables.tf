@@ -1,5 +1,5 @@
 variable "project" {
-  default = "Flood Mapping"
+  default = "Flood Map"
   type    = string
 }
 
