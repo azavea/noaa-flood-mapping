@@ -34,7 +34,7 @@ r53_private_hosted_zone = "floodmap.noaa.internal"
 
 external_access_cidr_block = "127.0.0.1/32"
 
-bastion_ami           = "ami-0a887e401f7654935"
+bastion_ami           = "ami-08f3d892de259504d"
 bastion_instance_type = "t3.nano"
 bastion_ebs_optimized = true
 
