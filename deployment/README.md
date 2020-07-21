@@ -44,7 +44,7 @@ rds_database_username   = floodmap
 rds_database_password   = floodmap
 ```
 
-This file lives at `s3://floodmap-staging-config-us-east-1/terraform/terraform.tfvars`.
+This file lives at `s3://noaafloodmap-staging-config-us-east-1/terraform/terraform.tfvars`.
 
 To deploy this project's core infrastructure, use the `infra` wrapper script to lookup the remote state of the infrastructure and assemble a plan for work to be done:
 
