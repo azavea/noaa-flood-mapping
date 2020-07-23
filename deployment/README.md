@@ -2,6 +2,8 @@
 
 - [AWS Credentials](#aws-credentials)
 - [Terraform](#terraform)
+- [Bastion](#bastion)
+  - [PostgreSQL Client](#postgresql-client)
 
 ## AWS Credentials
 
@@ -60,3 +62,13 @@ $ ./scripts/infra apply
 ```
 
 This will attempt to apply the plan assembled in the previous step using Amazon's APIs.
+
+## Bastion
+
+### PostgreSQL Client
+
+The bastion SSH host created by Terraform has several utility libraries installed on it, including a PostgreSQL 12 client. At the time that this client was installed, PostgreSQL 12 support was new to RDS and the client for 12 was not available on the `amazon-linux-extras` repository.
+
+To perform an upgrade, the existing `postgresql12`, `libpq5`, and `postgresql12-libs` packages should be uninstalled and the newer versions should be installed from [this repository](https://download.postgresql.org/pub/repos/yum/12/redhat/rhel-7-x86_64/).
+
+When `amazon-linux-extras` adds PostgreSQL 12 libraries, the manually installed RPMs can be replaced with the packages in `amazon-linux-extras`.
