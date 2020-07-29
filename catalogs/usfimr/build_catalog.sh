@@ -14,17 +14,18 @@ else
   unzip /tmp/USFIMR_all.zip -d /tmp
 fi
 
-if test -f /tmp/latlng/USFIMR_07172018.shp; then
+if test -f /tmp/latlng/USFIMR.shp; then
   echo "USFIMR already reprojected. Continuing..."
 else
   echo "Reprojecting USFIMR..."
   mkdir -p /tmp/latlng
-  ogr2ogr /tmp/latlng/USFIMR_07172018.shp -t_srs "EPSG:4326" /tmp/USFIMR_all/USFIMR_07172018.shp
+  # wildcard used here to accomodate dated filenames
+  ogr2ogr /tmp/latlng/USFIMR.shp -t_srs "EPSG:4326" /tmp/USFIMR_all/USFIMR_*.shp
 fi
 
 if test -d ./catalog; then
   echo "STAC catalog already exists."
 else
   echo "STAC catalog not generated."
-  python3 build_catalog.py --shapefile /tmp/latlng/USFIMR_07172018.shp
+  python3 build_catalog.py --shapefile /tmp/latlng/USFIMR.shp
 fi
