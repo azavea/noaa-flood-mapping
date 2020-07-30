@@ -12,7 +12,8 @@ Install all python requirements
 pip3 install -r requirements.txt
 ```
 
-Run `build_catalog.sh`.
+Run `build_catalog.sh`. This script downloads the dataset, unzips it, and processes it with `build_catalog.py`.
+Because `build_catalog.py` is called from within `build_catalog.sh`, it is only necessary to run the bash script.
 
 ```bash
 ./build_catalog.sh
