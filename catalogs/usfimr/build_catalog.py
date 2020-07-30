@@ -9,7 +9,7 @@ from datetime import (date, time, datetime)
 
 from ipdb import launch_ipdb_on_exception
 import fiona
-from  shapely.geometry import shape
+from  shapely.geometry import shape, mapping
 from pystac import (
     Asset,
     CatalogType,
@@ -66,9 +66,9 @@ if __name__ == '__main__':
 
             if running_end_dt:
                 if running_end_dt < end_dt:
-                    running_start_dt = end_dt
+                    running_end_dt = end_dt
             else:
-                running_start_dt = start_dt
+                running_end_dt = end_dt
 
             fid = feature['id']
             
@@ -87,7 +87,8 @@ if __name__ == '__main__':
                 description="geojson representation",
                 media_type="application/geo+json"
             )
-            item = Item(fid, geom, bbox_list, start_dt, deepcopy(props))
+            serializable_convex_hull = mapping(shapely_geom.convex_hull)
+            item = Item(fid, serializable_convex_hull, bbox_list, start_dt, deepcopy(props))
             item.add_asset(key="wkt", asset=text_asset)
             item.add_asset(key="wkb", asset=binary_asset)
             item.add_asset(key="geojson", asset=json_asset)
