@@ -219,3 +219,63 @@ variable "rds_cpu_credit_balance_threshold" {
   default = 30
   type    = number
 }
+
+variable "batch_cpu_container_instance_volume_size" {
+  type    = number
+  default = 30
+}
+
+variable "batch_gpu_container_instance_volume_size" {
+  type    = number
+  default = 30
+}
+
+variable "batch_cpu_ce_min_vcpus" {
+  type = number
+}
+
+variable "batch_gpu_ce_min_vcpus" {
+  type = number
+}
+
+variable "batch_cpu_ce_max_vcpus" {
+  type = number
+}
+
+variable "batch_gpu_ce_max_vcpus" {
+  type = number
+}
+
+variable "batch_cpu_ce_instance_types" {
+  type = list(string)
+}
+
+variable "batch_gpu_ce_instance_types" {
+  type = list(string)
+}
+
+variable "batch_cpu_ce_spot_fleet_allocation_strategy" {
+  type = string
+}
+
+variable "batch_gpu_ce_spot_fleet_allocation_strategy" {
+  type = string
+}
+
+variable "batch_cpu_ce_spot_fleet_bid_precentage" {
+  type = number
+}
+
+variable "batch_gpu_ce_spot_fleet_bid_precentage" {
+  type = number
+}
+
+variable "aws_spot_fleet_service_role_policy_arn" {
+  default = "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole"
+  type    = string
+}
+
+variable "aws_batch_service_role_policy_arn" {
+  default = "arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole"
+  type    = string
+}
