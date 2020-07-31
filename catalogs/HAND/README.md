@@ -21,7 +21,8 @@ python3 build_catalog.py --root-uri https://hand-data.s3.amazonaws.com
 ## COGify tifs and geojson shapefiles
 
 Conveniently accessing the data we're cataloging will require storage in formats that are designed for access
-via the web. Assuming that we're doing this on an ec2 instance, Proj and GDAL dependencies must be installed:
+via the web. Assuming that we're doing this on an ec2 instance, Proj and GDAL dependencies must be installed.
+A script has been provided for just this use case:
 
 ```bash
 aws_install_gdal.sh
