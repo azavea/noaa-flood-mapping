@@ -1,16 +1,10 @@
 import argparse
-from copy import deepcopy
 
-from pystac import (
-    Catalog,
-    CatalogType,
-    Collection,
-    Extensions,
-    Item,
-)
+import numpy as np
+from pystac import Catalog, CatalogType, Collection, Link, LinkType
 from sklearn.model_selection import train_test_split
 
-
+# Map of experiment name to collection name in sen1floods11 STAC catalog
 EXPERIMENT = {"s2weak": "NoQC", "s1weak": "S1Flood_NoQC", "hand": "QC_v2"}
 
 
@@ -29,42 +23,37 @@ def normalized_float(val):
 
 
 def mapper(item):
-    """ Map STAC LabelItem to format necessary for our test/train catalogs. """
-    params = {
-        "id": item.id,
-        "bbox": item.bbox,
-        "datetime": item.datetime,
-        "geometry": item.geometry,
-        "properties": deepcopy(item.properties),
-        "stac_extensions": [Extensions.LABEL],
-    }
+    """ Map STAC LabelItem to list of STAC Item images with labels as links.
 
+    This is a one to many mapping because each label item could be sourced
+    from multiple image scenes.
+
+    """
     source_links = list(filter(lambda l: l.rel == "source", item.links))
     for link in source_links:
         link.resolve_stac_object()
-    source_assets = [link.target.assets["image"].clone() for link in source_links]
-    if len(source_assets) == 0:
+    source_items = [link.target.clone() for link in source_links]
+    if len(source_items) == 0:
         print("WARNING: No source images for {}".format(item.id))
 
-    new_item = Item(**params)
-    new_item.add_asset("labels", item.assets["labels"].clone())
-    for index, source_asset in enumerate(source_assets):
-        new_item.add_asset("image_{}".format(index), source_asset)
-    return new_item
+    for source_item in source_items:
+        label_asset = item.assets["labels"]
+        # Remove label item source links to avoid recursion -- we're inverting
+        # the label / item relationship.
+        item.links = list(filter(lambda l: l.rel != "source", item.links))
+        source_item.links = [
+            Link(
+                "labels",
+                item,
+                link_type=LinkType.RELATIVE,
+                media_type=label_asset.media_type,
+            ).set_owner(source_item)
+        ]
+
+    return source_items
 
 
 def main():
-    """
-
-    TODOS:
-    - [ ] Add self links to sen1floods11 stac by pulling, loading and rewriting the catalog from s3
-    - [ ] Publish updated sen1floods11 catalog
-    - [ ] Test performance of this code reading from the remote catalog
-    - [ ] Update this code to add link to source item in sen1floods11 stack, requires (1)
-    - [ ] Update this code to the schema discussed in https://github.com/azavea/noaa-flood-mapping/issues/38#issuecomment-667178703
-    - [ ] Do we need to parameterize this code with absolute urls to s3 bucket?
-
-    """
     parser = argparse.ArgumentParser(description="Process some integers.")
     parser.add_argument(
         "experiment",
@@ -118,10 +107,19 @@ def main():
     )
     mldata_catalog.add_child(test_collection)
 
-    print("Constructing new label items...")
-    label_items = map(mapper, label_collection.get_items())
+    mldata_labels_collection = Collection(
+        "labels",
+        "labels for scenese in test and train collections",
+        label_collection.extent,
+    )
+    label_items = [i.clone() for i in label_collection.get_items()]
+    mldata_catalog.add_child(mldata_labels_collection)
+    mldata_labels_collection.add_items(label_items)
+
+    print("Constructing new ml scenes...")
+    scenes = np.array(list(map(mapper, label_items))).flatten()
     train_items, test_items = train_test_split(
-        list(label_items),
+        scenes,
         test_size=args.test_size,
         train_size=args.train_size,
         random_state=args.random_seed,
@@ -133,9 +131,11 @@ def main():
     print("Added {} items to test catalog".format(len(test_items)))
 
     print("Saving catalog...")
-    mldata_catalog.normalize_and_save(
-        "./data/mldata_{}".format(experiment), CatalogType.SELF_CONTAINED
-    )
+    mldata_catalog.normalize_hrefs("./data/mldata_{}".format(experiment))
+    import ipdb
+
+    ipdb.set_trace()
+    mldata_catalog.save(CatalogType.SELF_CONTAINED)
 
 
 if __name__ == "__main__":
