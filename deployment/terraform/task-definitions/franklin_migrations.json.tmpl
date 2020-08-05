@@ -1,0 +1,29 @@
+[
+  {
+    "cpu": 0,
+    "essential": true,
+    "image": "${image}",
+    "name": "franklin-migrations",
+    "command": [
+      "migrate",
+      "--db-user",
+      "${postgres_user}",
+      "--db-password",
+      "${postgres_password}",
+      "--db-host",
+      "${postgres_host}",
+      "--db-port",
+      "5432",
+      "--db-name",
+      "${postgres_name}"
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "log${environment}FranklinMigrations",
+        "awslogs-region": "${aws_region}",
+        "awslogs-stream-prefix": "franklin-migrations"
+      }
+    }
+  }
+]

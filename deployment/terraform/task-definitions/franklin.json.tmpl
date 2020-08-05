@@ -1,0 +1,42 @@
+[
+  {
+    "cpu": 0,
+    "essential": true,
+    "image": "${image}",
+    "name": "franklin",
+    "portMappings": [
+      {
+        "containerPort": 9090
+      }
+    ],
+    "command": [
+      "serve",
+      "--db-user",
+      "${postgres_user}",
+      "--db-password",
+      "${postgres_password}",
+      "--db-host",
+      "${postgres_host}",
+      "--db-port",
+      "5432",
+      "--db-name",
+      "${postgres_name}",
+      "--api-host",
+      "${api_host}",
+      "--api-scheme",
+      "https",
+      "--external-port",
+      "443",
+      "--with-transactions",
+      "--with-tiles"
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "log${environment}Franklin",
+        "awslogs-region": "${aws_region}",
+        "awslogs-stream-prefix": "franklin"
+      }
+    }
+  }
+]
