@@ -1,0 +1,28 @@
+{
+    "image": "amazonlinux:latest",
+    "vcpus": 2,
+    "memory": 2048,
+    "command": [
+        "df",
+        "-h"
+    ],
+    "volumes": [
+        {
+            "host": {
+                "sourcePath": "/media/ephemeral0"
+            },
+            "name": "ephemeral0"
+        }
+    ],
+    "environment": [],
+    "mountPoints": [
+        {
+            "containerPath": "/tmp",
+            "readOnly": false,
+            "sourceVolume": "ephemeral0"
+        }
+    ],
+    "privileged": false,
+    "ulimits": [],
+    "resourceRequirements": []
+}

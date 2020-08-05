@@ -1,0 +1,21 @@
+{
+    "image": "nvidia/cuda:9.0-base",
+    "vcpus": 2,
+    "memory": 2048,
+    "command": [
+        "sh",
+        "-c",
+        "nvidia-smi"
+    ],
+    "volumes": [],
+    "environment": [],
+    "mountPoints": [],
+    "privileged": false,
+    "ulimits": [],
+    "resourceRequirements": [
+        {
+            "type": "GPU",
+            "value": "1"
+        }
+    ]
+}
