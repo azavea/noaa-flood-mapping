@@ -21,12 +21,36 @@ resource "aws_iam_role" "container_instance_ec2" {
 
 resource "aws_iam_role_policy_attachment" "ec2_service_role" {
   role       = aws_iam_role.container_instance_ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+  policy_arn = var.aws_ec2_service_role_policy_arn
 }
 
 resource "aws_iam_instance_profile" "container_instance" {
   name = aws_iam_role.container_instance_ec2.name
   role = aws_iam_role.container_instance_ec2.name
+}
+
+data "aws_iam_policy_document" "scoped_data" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:PutObjectAcl",
+      "s3:DeleteObject"
+    ]
+
+    resources = [
+      "${aws_s3_bucket.data.arn}",
+      "${aws_s3_bucket.data.arn}/*"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "scoped_data" {
+  name   = "s3${var.environment}ScopedDataPolicy"
+  role   = aws_iam_role.container_instance_ec2.name
+  policy = data.aws_iam_policy_document.scoped_data.json
 }
 
 #
