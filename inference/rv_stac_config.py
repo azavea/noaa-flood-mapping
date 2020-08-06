@@ -10,7 +10,7 @@ from rastervision.pytorch_backend import *
 from rastervision.pytorch_learner import *
 from rastervision.gdal_vsi.vsi_file_system import VsiFileSystem
 
-from pystac import Catalog, Collection, Item
+from pystac import Catalog, Collection, Item, MediaType
 from rastervision.core.data import (
     ClassConfig,
     RasterioSourceConfig,
@@ -40,17 +40,18 @@ def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
         link.resolve_stac_object().target for link in item.links if link.rel == "labels"
     ]
 
+    # image source configs
+    image_source = image_sources(item, channel_order)
+
     scene_configs = []
     # iterate through links, building a scene config per link
     for label_item in label_items:
         label_asset = label_item.assets["labels"]
         label_uri = label_asset.href
 
-        # rasterio source configs
-        image_source = image_sources(item, channel_order)
 
         # semantic segmentation label configuration; convert to tif as necesary
-        if label_asset.media_type == "image/tiff; application=geotiff":
+        if label_asset.media_type == MediaType.GEOTIFF
             raster_label_source = RasterioSourceConfig(uris=[label_asset.href],)
         else:
             vector_label_source = GeoJSONVectorSourceConfig(
