@@ -2,7 +2,7 @@
 # ACM resources
 #
 module "cert" {
-  source = "github.com/azavea/terraform-aws-acm-certificate?ref=develop"
+  source = "github.com/azavea/terraform-aws-acm-certificate?ref=3.0.0"
 
   providers = {
     aws.acm_account     = aws
