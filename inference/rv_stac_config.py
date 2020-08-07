@@ -31,7 +31,11 @@ def image_sources(item: Item, channel_order: [int]):
     image_uris = [
         VsiFileSystem.uri_to_vsi_path(item.assets[key].href) for key in image_keys
     ]
-    return RasterioSourceConfig(uris=image_uris, channel_order=channel_order,)
+    return RasterioSourceConfig(
+        uris=image_uris,
+        channel_order=channel_order,
+        transformers=[StatsTransformerConfig()],
+    )
 
 
 def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
@@ -49,9 +53,8 @@ def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
         label_asset = label_item.assets["labels"]
         label_uri = label_asset.href
 
-
         # semantic segmentation label configuration; convert to tif as necesary
-        if label_asset.media_type == MediaType.GEOTIFF
+        if label_asset.media_type == MediaType.GEOTIFF:
             raster_label_source = RasterioSourceConfig(uris=[label_asset.href],)
         else:
             vector_label_source = GeoJSONVectorSourceConfig(
