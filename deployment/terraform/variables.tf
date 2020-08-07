@@ -26,6 +26,10 @@ variable "r53_private_hosted_zone" {
   type = string
 }
 
+variable "r53_public_hosted_zone" {
+  type = string
+}
+
 variable "vpc_cidr_block" {
   default = "10.0.0.0/16"
   type    = string
@@ -270,6 +274,38 @@ variable "batch_gpu_ce_spot_fleet_bid_precentage" {
   type = number
 }
 
+variable "franklin_desired_count" {
+  type = number
+}
+
+variable "franklin_deployment_min_percent" {
+  type = number
+}
+
+variable "franklin_deployment_max_percent" {
+  type = number
+}
+
+variable "franklin_image_tag" {
+  type = string
+}
+
+variable "franklin_cpu" {
+  type = number
+}
+
+variable "franklin_memory" {
+  type = number
+}
+
+variable "franklin_migrations_cpu" {
+  type = number
+}
+
+variable "franklin_migrations_memory" {
+  type = number
+}
+
 variable "aws_spot_fleet_service_role_policy_arn" {
   default = "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole"
   type    = string
@@ -282,5 +318,10 @@ variable "aws_batch_service_role_policy_arn" {
 
 variable "aws_ec2_service_role_policy_arn" {
   default = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+  type    = string
+}
+
+variable "aws_ecs_task_execution_role_policy_arn" {
+  default = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
   type    = string
 }
