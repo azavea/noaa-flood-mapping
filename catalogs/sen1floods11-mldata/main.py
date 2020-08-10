@@ -132,9 +132,6 @@ def main():
 
     print("Saving catalog...")
     mldata_catalog.normalize_hrefs("./data/mldata_{}".format(experiment))
-    import ipdb
-
-    ipdb.set_trace()
     mldata_catalog.save(CatalogType.SELF_CONTAINED)
 
 
