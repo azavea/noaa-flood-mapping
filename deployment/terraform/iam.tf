@@ -5,6 +5,7 @@ data "aws_iam_policy_document" "container_instance_ec2_assume_role" {
   statement {
     effect = "Allow"
 
+
     principals {
       type        = "Service"
       identifiers = ["ec2.amazonaws.com"]
@@ -51,6 +52,31 @@ resource "aws_iam_role_policy" "scoped_data" {
   name   = "s3${var.environment}ScopedDataPolicy"
   role   = aws_iam_role.container_instance_ec2.name
   policy = data.aws_iam_policy_document.scoped_data.json
+}
+
+data "aws_iam_policy_document" "scoped_s2_data" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject"
+    ]
+
+    resources = [
+      "arn:aws:s3:::sentinel-inventory",
+      "arn:aws:s3:::sentinel-inventory/*",
+      "arn:aws:s3:::sentinel-s2-l2a",
+      "arn:aws:s3:::sentinel-s2-l2a/*",
+      "arn:aws:s3:::sentinel-s2-l1c",
+      "arn:aws:s3:::sentinel-s2-l1c/*"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "sentinel_on_aws" {
+  name   = "s3${var.environment}Sentinel2ScopedDataPolicy"
+  role   = aws_iam_role.container_instance_ec2.name
+  policy = data.aws_iam_policy_document.scoped_s2_data
 }
 
 #
