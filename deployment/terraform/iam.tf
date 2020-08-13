@@ -59,7 +59,8 @@ data "aws_iam_policy_document" "scoped_s2_data" {
     effect = "Allow"
 
     actions = [
-      "s3:GetObject"
+      "s3:Get*",
+      "s3:List*"
     ]
 
     resources = [
