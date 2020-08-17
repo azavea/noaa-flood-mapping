@@ -1,1 +1,4 @@
 catalog
+
+data/*
+!data/.gitkeep
