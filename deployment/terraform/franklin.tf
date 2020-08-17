@@ -2,24 +2,22 @@
 # Security Group Resources
 #
 resource "aws_security_group" "alb" {
-  name   = "sg${var.environment}FranklinLoadBalancer"
+  name   = "sgFranklinLoadBalancer"
   vpc_id = module.vpc.id
 
   tags = {
-    Name        = "sg${var.environment}FranklinLoadBalancer",
+    Name        = "sgFranklinLoadBalancer",
     Project     = var.project
-    Environment = var.environment
   }
 }
 
 resource "aws_security_group" "franklin" {
-  name   = "sg${var.environment}FranklinEcsService"
+  name   = "sgFranklinEcsService"
   vpc_id = module.vpc.id
 
   tags = {
-    Name        = "sg${var.environment}FranklinEcsService",
+    Name        = "sgFranklinEcsService",
     Project     = var.project
-    Environment = var.environment
   }
 }
 
@@ -27,21 +25,20 @@ resource "aws_security_group" "franklin" {
 # ALB Resources
 #
 resource "aws_lb" "franklin" {
-  name            = "alb${var.environment}Franklin"
+  name            = "albFranklin"
   security_groups = [aws_security_group.alb.id]
   subnets         = module.vpc.public_subnet_ids
 
   enable_http2 = true
 
   tags = {
-    Name        = "alb${var.environment}Franklin"
+    Name        = "albFranklin"
     Project     = var.project
-    Environment = var.environment
   }
 }
 
 resource "aws_lb_target_group" "franklin" {
-  name = "tg${var.environment}Franklin"
+  name = "tgFranklin"
 
   health_check {
     healthy_threshold   = 3
@@ -60,9 +57,8 @@ resource "aws_lb_target_group" "franklin" {
   target_type = "ip"
 
   tags = {
-    Name        = "tg${var.environment}Franklin"
+    Name        = "tgFranklin"
     Project     = var.project
-    Environment = var.environment
   }
 }
 
@@ -98,11 +94,11 @@ resource "aws_lb_listener" "franklin" {
 # ECS Resources
 #
 resource "aws_ecs_cluster" "franklin" {
-  name = "ecs${var.environment}Cluster"
+  name = "ecsCluster"
 }
 
 resource "aws_ecs_task_definition" "franklin" {
-  family                   = "${var.environment}Franklin"
+  family                   = "Franklin"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.franklin_cpu
@@ -120,19 +116,17 @@ resource "aws_ecs_task_definition" "franklin" {
     postgres_name     = "franklin"
     api_host          = aws_route53_record.franklin.name
 
-    environment = var.environment
     aws_region  = var.aws_region
   })
 
   tags = {
-    Name        = "${var.environment}Franklin",
+    Name        = "Franklin",
     Project     = var.project
-    Environment = var.environment
   }
 }
 
 resource "aws_ecs_task_definition" "franklin_migrations" {
-  family                   = "${var.environment}FranklinMigrations"
+  family                   = "FranklinMigrations"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.franklin_migrations_cpu
@@ -149,19 +143,17 @@ resource "aws_ecs_task_definition" "franklin_migrations" {
     postgres_host     = aws_route53_record.database.fqdn
     postgres_name     = "franklin"
 
-    environment = var.environment
     aws_region  = var.aws_region
   })
 
   tags = {
-    Name        = "${var.environment}FranklinMigrations",
+    Name        = "FranklinMigrations"
     Project     = var.project
-    Environment = var.environment
   }
 }
 
 resource "aws_ecs_service" "franklin" {
-  name            = "${var.environment}Franklin"
+  name            = "Franklin"
   cluster         = aws_ecs_cluster.franklin.name
   task_definition = aws_ecs_task_definition.franklin.arn
 
@@ -190,11 +182,11 @@ resource "aws_ecs_service" "franklin" {
 # CloudWatch Resources
 #
 resource "aws_cloudwatch_log_group" "franklin" {
-  name              = "log${var.environment}Franklin"
+  name              = "logFranklin"
   retention_in_days = 30
 }
 
 resource "aws_cloudwatch_log_group" "franklin_migrations" {
-  name              = "log${var.environment}FranklinMigrations"
+  name              = "logFranklinMigrations"
   retention_in_days = 30
 }

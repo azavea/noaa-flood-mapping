@@ -15,7 +15,7 @@ data "aws_iam_policy_document" "container_instance_ec2_assume_role" {
 }
 
 resource "aws_iam_role" "container_instance_ec2" {
-  name               = "${var.environment}ContainerInstanceProfile"
+  name               = "ContainerInstanceProfile"
   assume_role_policy = data.aws_iam_policy_document.container_instance_ec2_assume_role.json
 }
 
@@ -48,7 +48,7 @@ data "aws_iam_policy_document" "scoped_data" {
 }
 
 resource "aws_iam_role_policy" "scoped_data" {
-  name   = "s3${var.environment}ScopedDataPolicy"
+  name   = "s3ScopedDataPolicy"
   role   = aws_iam_role.container_instance_ec2.name
   policy = data.aws_iam_policy_document.scoped_data.json
 }
@@ -70,7 +70,7 @@ data "aws_iam_policy_document" "container_instance_spot_fleet_assume_role" {
 }
 
 resource "aws_iam_role" "container_instance_spot_fleet" {
-  name               = "fleet${var.environment}ServiceRole"
+  name               = "fleetServiceRole"
   assume_role_policy = data.aws_iam_policy_document.container_instance_spot_fleet_assume_role.json
 }
 
@@ -96,7 +96,7 @@ data "aws_iam_policy_document" "container_instance_batch_assume_role" {
 }
 
 resource "aws_iam_role" "container_instance_batch" {
-  name               = "batch${var.environment}ServiceRole"
+  name               = "batchServiceRole"
   assume_role_policy = data.aws_iam_policy_document.container_instance_batch_assume_role.json
 }
 
@@ -124,12 +124,12 @@ data "aws_iam_policy_document" "ecs_assume_role" {
 }
 
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name               = "ecs${var.environment}TaskExecutionRole"
+  name               = "ecsTaskExecutionRole"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role.json
 }
 
 resource "aws_iam_role" "ecs_task_role" {
-  name               = "ecs${var.environment}TaskRole"
+  name               = "ecsTaskRole"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role.json
 }
 

@@ -27,7 +27,6 @@ Here is an example `terraform.tfvars` for this project:
 
 ```hcl
 project     = "Flood Map"
-environment = "Staging"
 aws_region  = "us-east-1"
 
 aws_key_name = "floodmap-stg"
@@ -40,13 +39,13 @@ bastion_ami           = "ami-08f3d892de259504d"
 bastion_instance_type = "t3.nano"
 bastion_ebs_optimized = true
 
-rds_database_identifier = floodmap-staging
+rds_database_identifier = floodmap
 rds_database_name       = floodmap
 rds_database_username   = floodmap
 rds_database_password   = floodmap
 ```
 
-This file lives at `s3://noaafloodmap-staging-config-us-east-1/terraform/terraform.tfvars`.
+This file lives at `s3://noaafloodmap-config-us-east-1/terraform/terraform.tfvars`.
 
 To deploy this project's core infrastructure, use the `infra` wrapper script to lookup the remote state of the infrastructure and assemble a plan for work to be done:
 

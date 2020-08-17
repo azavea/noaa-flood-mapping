@@ -9,6 +9,6 @@ services:
       - AWS_PROFILE=${AWS_PROFILE:-noaa}
       - GIT_COMMIT=${GIT_COMMIT:-latest}
       - NOAA_FLOOD_MAP_DEBUG=1
-      - NOAA_FLOOD_MAP_SETTINGS_BUCKET=${NOAA_FLOOD_MAP_SETTINGS_BUCKET:-noaafloodmap-staging-config-us-east-1}
+      - NOAA_FLOOD_MAP_SETTINGS_BUCKET=${NOAA_FLOOD_MAP_SETTINGS_BUCKET:-noaafloodmap-config-us-east-1}
     working_dir: /usr/local/src
     entrypoint: bash
