@@ -9,7 +9,6 @@ resource "aws_db_subnet_group" "default" {
   tags = {
     Name        = "dbsngDatabaseServer"
     Project     = var.project
-    Environment = var.environment
   }
 }
 
@@ -61,7 +60,6 @@ resource "aws_db_parameter_group" "default" {
   tags = {
     Name        = "dbpgDatabaseServer"
     Project     = var.project
-    Environment = var.environment
   }
 }
 
@@ -100,5 +98,5 @@ module "database" {
   insufficient_data_actions          = [aws_sns_topic.global.arn]
 
   project     = var.project
-  environment = var.environment
+  environment = ""
 }

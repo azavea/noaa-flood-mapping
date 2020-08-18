@@ -1,7 +1,7 @@
 module "vpc" {
   source = "github.com/azavea/terraform-aws-vpc?ref=6.0.1"
 
-  name                       = "vpc${replace(var.project, " ", "")}${var.environment}"
+  name                       = "vpc${replace(var.project, " ", "")}"
   region                     = var.aws_region
   key_name                   = var.aws_key_name
   cidr_block                 = var.vpc_cidr_block
@@ -13,5 +13,5 @@ module "vpc" {
   bastion_ebs_optimized      = var.bastion_ebs_optimized
 
   project     = var.project
-  environment = var.environment
+  environment = ""
 }

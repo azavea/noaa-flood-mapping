@@ -7,7 +7,6 @@ resource "aws_security_group" "batch" {
   tags = {
     Name        = "sgBatchContainerInstance"
     Project     = var.project
-    Environment = var.environment
   }
 }
 
@@ -55,7 +54,7 @@ resource "aws_launch_template" "batch_gpu_container_instance" {
 resource "aws_batch_compute_environment" "cpu" {
   depends_on = [aws_iam_role_policy_attachment.batch_policy]
 
-  compute_environment_name_prefix = "batch${var.environment}CPUComputeEnvironment"
+  compute_environment_name_prefix = "batchCPUComputeEnvironment"
   type                            = "MANAGED"
   state                           = "ENABLED"
   service_role                    = aws_iam_role.container_instance_batch.arn
@@ -90,7 +89,6 @@ resource "aws_batch_compute_environment" "cpu" {
       Name               = "BatchWorker"
       ComputeEnvironment = "CPU"
       Project            = var.project
-      Environment        = var.environment
     }
   }
 
@@ -102,7 +100,7 @@ resource "aws_batch_compute_environment" "cpu" {
 resource "aws_batch_compute_environment" "gpu" {
   depends_on = [aws_iam_role_policy_attachment.batch_policy]
 
-  compute_environment_name_prefix = "batch${var.environment}GPUComputeEnvironment"
+  compute_environment_name_prefix = "batchGPUComputeEnvironment"
   type                            = "MANAGED"
   state                           = "ENABLED"
   service_role                    = aws_iam_role.container_instance_batch.arn
@@ -137,7 +135,6 @@ resource "aws_batch_compute_environment" "gpu" {
       Name               = "BatchWorker"
       ComputeEnvironment = "GPU"
       Project            = var.project
-      Environment        = var.environment
     }
   }
 
@@ -147,28 +144,28 @@ resource "aws_batch_compute_environment" "gpu" {
 }
 
 resource "aws_batch_job_queue" "cpu" {
-  name                 = "queue${var.environment}CPU"
+  name                 = "queueCPU"
   priority             = 1
   state                = "ENABLED"
   compute_environments = [aws_batch_compute_environment.cpu.arn]
 }
 
 resource "aws_batch_job_queue" "gpu" {
-  name                 = "queue${var.environment}GPU"
+  name                 = "queueGPU"
   priority             = 1
   state                = "ENABLED"
   compute_environments = [aws_batch_compute_environment.gpu.arn]
 }
 
 resource "aws_batch_job_definition" "test_cpu" {
-  name = "job${var.environment}TestCPU"
+  name = "jobTestCPU"
   type = "container"
 
   container_properties = templatefile("job-definitions/test-cpu.json.tmpl", {})
 }
 
 resource "aws_batch_job_definition" "test_gpu" {
-  name = "job${var.environment}TestGPU"
+  name = "jobTestGPU"
   type = "container"
 
   container_properties = templatefile("job-definitions/test-gpu.json.tmpl", {})

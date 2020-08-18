@@ -11,7 +11,6 @@ resource "aws_route53_zone" "internal" {
 
   tags = {
     Project     = var.project
-    Environment = var.environment
   }
 }
 
