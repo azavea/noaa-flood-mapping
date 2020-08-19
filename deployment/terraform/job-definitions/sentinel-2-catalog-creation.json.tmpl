@@ -1,0 +1,33 @@
+{
+    "image": "quay.io/azavea/sentinel-2-stac-utils:0.1.0",
+    "vcpus": 2,
+    "memory": 2048,
+    "command": [
+        "create",
+        "--collection",
+        "Ref::collection",
+        "--inventory-path",
+        "Ref::inventoryPath",
+        "--output-catalog-root",
+        "Ref::outputCatalogRoot"
+    ],
+    "volumes": [
+        {
+            "host": {
+                "sourcePath": "/media/ephemeral0"
+            },
+            "name": "ephemeral0"
+        }
+    ],
+    "environment": [],
+    "mountPoints": [
+        {
+            "containerPath": "/tmp",
+            "readOnly": false,
+            "sourceVolume": "ephemeral0"
+        }
+    ],
+    "privileged": false,
+    "ulimits": [],
+    "resourceRequirements": []
+}

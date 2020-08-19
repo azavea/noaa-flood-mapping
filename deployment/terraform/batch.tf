@@ -170,3 +170,10 @@ resource "aws_batch_job_definition" "test_gpu" {
 
   container_properties = templatefile("job-definitions/test-gpu.json.tmpl", {})
 }
+
+resource "aws_batch_job_definition" "s2_catalog_creation" {
+  name = "createSentinel2Catalogs"
+  type = "container"
+
+  container_properties = templatefile("job-definitions/sentinel-2-catalog-creation.json.tmpl", {})
+}
