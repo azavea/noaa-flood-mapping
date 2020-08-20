@@ -100,10 +100,15 @@ def build_dataset_from_catalog(
     test_collection = catalog.get_child(id="test")
     test_scenes = make_scenes(test_collection, channel_order)
 
+    # Read validation scenes from STAC
+    test_collection = catalog.get_child(id="validation")
+    test_scenes = make_scenes(test_collection, channel_order)
+
     return DatasetConfig(
         class_config=class_config,
         train_scenes=train_scenes,
-        validation_scenes=test_scenes,
+        test_scenes=test_scenes,
+        validation_scenes=validation_scenes,
     )
 
 
