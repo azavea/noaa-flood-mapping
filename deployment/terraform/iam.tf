@@ -56,6 +56,33 @@ resource "aws_iam_role_policy" "scoped_data" {
 #
 # Spot Fleet IAM resources
 #
+
+data "aws_iam_policy_document" "scoped_s2_data" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "s3:Get*",
+      "s3:List*"
+    ]
+
+    resources = [
+      "arn:aws:s3:::sentinel-inventory",
+      "arn:aws:s3:::sentinel-inventory/*",
+      "arn:aws:s3:::sentinel-s2-l2a",
+      "arn:aws:s3:::sentinel-s2-l2a/*",
+      "arn:aws:s3:::sentinel-s2-l1c",
+      "arn:aws:s3:::sentinel-s2-l1c/*"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "sentinel_on_aws" {
+  name   = "s3Sentinel2ScopedDataPolicy"
+  role   = aws_iam_role.container_instance_ec2.name
+  policy = data.aws_iam_policy_document.scoped_s2_data.json
+}
+
 data "aws_iam_policy_document" "container_instance_spot_fleet_assume_role" {
   statement {
     effect = "Allow"
