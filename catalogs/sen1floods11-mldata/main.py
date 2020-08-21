@@ -66,17 +66,11 @@ def train_test_val_split(arrays, train_size, test_size, val_size, random_state):
             )
         )
 
-    test_val_size = test_size + val_size
+    train, test = train_test_split(arrays, test_size=1 - train_size)
+    validation, test = train_test_split(
+        test, test_size=test_size / (test_size + val_size)
+    )
 
-    train, test_val = train_test_split(
-        arrays,
-        train_size=train_size,
-        test_size=test_val_size,
-        random_state=random_state,
-    )
-    test, validation = train_test_split(
-        test_val, train_size=test_size * test_val_size, random_state=random_state,
-    )
     return train, test, validation
 
 
@@ -186,8 +180,8 @@ def main():
     print("Added {} items to train catalog".format(len(train_items)))
     test_collection.add_items(test_items)
     print("Added {} items to test catalog".format(len(test_items)))
-    validation_collection.add_items(test_items)
-    print("Added {} items to test catalog".format(len(test_items)))
+    validation_collection.add_items(val_items)
+    print("Added {} items to validation catalog".format(len(val_items)))
 
     print("Saving catalog...")
     mldata_catalog.normalize_hrefs("./data/mldata_{}".format(experiment))

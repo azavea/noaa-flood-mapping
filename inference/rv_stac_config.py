@@ -101,8 +101,8 @@ def build_dataset_from_catalog(
     test_scenes = make_scenes(test_collection, channel_order)
 
     # Read validation scenes from STAC
-    test_collection = catalog.get_child(id="validation")
-    test_scenes = make_scenes(test_collection, channel_order)
+    validation_collection = catalog.get_child(id="validation")
+    validation_scenes = make_scenes(validation_collection, channel_order)
 
     return DatasetConfig(
         class_config=class_config,
@@ -125,7 +125,7 @@ def get_config(runner):
     catalog: Catalog = Catalog.from_file(catalog_root)
 
     # TODO: pull desired channels from root collection properties
-    channel_ordering: [int] = [0, 1, 2]
+    channel_ordering: [int] = [0, 1]
 
     # TODO: pull ClassConfig info from root collection properties
     class_config: ClassConfig = ClassConfig(
