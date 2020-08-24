@@ -125,7 +125,7 @@ def get_config(runner):
     catalog: Catalog = Catalog.from_file(catalog_root)
 
     # TODO: pull desired channels from root collection properties
-    channel_ordering: [int] = [0, 1]
+    channel_ordering: [int] = [0, 1, 2]
 
     # TODO: pull ClassConfig info from root collection properties
     class_config: ClassConfig = ClassConfig(
