@@ -1,4 +1,7 @@
+#!/usr/bin/env python3
+
 import argparse
+import sys
 
 import numpy as np
 from pystac import Catalog, CatalogType, Collection, Link, LinkType
@@ -53,6 +56,24 @@ def mapper(item):
     return source_items
 
 
+def train_test_val_split(arrays, train_size, test_size, val_size, random_state):
+    """ A helper function resembling sklearn's train_test_split but with the addition of validation output """
+    proportion_sum = train_size + test_size + val_size
+    if proportion_sum != 1.0:
+        sys.exit(
+            "train, test, validation proprortions must add up to 1.0; currently {}".format(
+                proportion_sum
+            )
+        )
+
+    train, test = train_test_split(arrays, test_size=1 - train_size)
+    validation, test = train_test_split(
+        test, test_size=test_size / (test_size + val_size)
+    )
+
+    return train, test, validation
+
+
 def main():
     parser = argparse.ArgumentParser(description="Process some integers.")
     parser.add_argument(
@@ -61,9 +82,17 @@ def main():
         help="Experiment to generate. One of {}".format(set(EXPERIMENT.keys())),
     )
     parser.add_argument(
+        "--sample",
+        "-s",
+        default=1.0,
+        dest="sample",
+        type=normalized_float,
+        help="Percentage of total dataset to build mldata STAC from. Useful for quick experiments",
+    )
+    parser.add_argument(
         "--test-size",
         "-t",
-        default=0.3,
+        default=0.2,
         dest="test_size",
         type=normalized_float,
         help="Percentage of dataset to use for test set",
@@ -71,10 +100,18 @@ def main():
     parser.add_argument(
         "--train-size",
         "-T",
-        default=None,
+        default=0.6,
         dest="train_size",
         type=normalized_float,
         help="Percentage of dataset to use for train set",
+    )
+    parser.add_argument(
+        "--val-size",
+        "-v",
+        default=0.2,
+        dest="val_size",
+        type=normalized_float,
+        help="Percentage of dataset to use for validation set",
     )
     parser.add_argument(
         "--random-seed",
@@ -107,6 +144,11 @@ def main():
     )
     mldata_catalog.add_child(test_collection)
 
+    validation_collection = Collection(
+        "validation", "validation items for collection", label_collection.extent
+    )
+    mldata_catalog.add_child(validation_collection)
+
     mldata_labels_collection = Collection(
         "labels",
         "labels for scenese in test and train collections",
@@ -117,11 +159,20 @@ def main():
     mldata_labels_collection.add_items(label_items)
 
     print("Constructing new ml scenes...")
-    scenes = np.array(list(map(mapper, label_items))).flatten()
-    train_items, test_items = train_test_split(
-        scenes,
-        test_size=args.test_size,
+    all_scenes = np.array(list(map(mapper, label_items))).flatten()
+
+    np.random.seed(seed=args.random_seed)
+    mask = np.random.choice(
+        [False, True], len(all_scenes), p=[1.0 - args.sample, args.sample]
+    )
+    scenes = all_scenes[mask]
+
+    print("args", args.train_size, args.test_size, args.val_size)
+    train_items, test_items, val_items = train_test_val_split(
+        arrays=scenes,
         train_size=args.train_size,
+        test_size=args.test_size,
+        val_size=args.val_size,
         random_state=args.random_seed,
     )
 
@@ -129,6 +180,8 @@ def main():
     print("Added {} items to train catalog".format(len(train_items)))
     test_collection.add_items(test_items)
     print("Added {} items to test catalog".format(len(test_items)))
+    validation_collection.add_items(val_items)
+    print("Added {} items to validation catalog".format(len(val_items)))
 
     print("Saving catalog...")
     mldata_catalog.normalize_hrefs("./data/mldata_{}".format(experiment))
