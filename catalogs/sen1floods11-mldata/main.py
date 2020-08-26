@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 
 # Map of experiment name to collection name in sen1floods11 STAC catalog
 EXPERIMENT = {"s2weak": "NoQC", "s1weak": "S1Flood_NoQC", "hand": "QC_v2"}
+S1 = None
 
 
 def mapper(item):
@@ -19,12 +20,18 @@ def mapper(item):
     from multiple image scenes.
 
     """
+    global S1
     source_links = list(filter(lambda l: l.rel == "source", item.links))
     for link in source_links:
         link.resolve_stac_object()
     source_items = [link.target.clone() for link in source_links if "_S1" in link.target.id]
     if len(source_items) == 0:
         print("WARNING: No source images for {}".format(item.id))
+        item_id = "_".join(item.id.split("_")[0:-1])
+        if S1 is None:
+            root_link = list(filter(lambda l: l.rel == "root", item.links))[0]
+            S1 = list(root_link.target.get_child("S1").get_items())
+        source_items = [i.clone() for i in S1 if i.id == f"{item_id}_S1"]
 
     for source_item in source_items:
         label_asset = item.assets["labels"]
@@ -54,14 +61,14 @@ def make_parser():
     parser.add_argument(
         "--valid-csv",
         dest="valid_csv",
-        default=None,
+        required=True,
         type=str,
         help="The CSV from which to take the list of validation images"
     )
     parser.add_argument(
         "--test-csvs",
         dest="test_csvs",
-        default=[],
+        required=True,
         nargs='+',
         type=str,
         help="The CSVs from which to take the list of training images"
@@ -73,13 +80,12 @@ def main():
     parser = make_parser()
     args = parser.parse_args()
 
-    if args.valid_csv is not None:
-        valid_set = set()
-        with open(args.valid_csv) as csvfile:
-            for row in csv.reader(csvfile):
-                name = row[0].split("/")[1]
-                name = "_".join(name.split("_")[0:-1])
-                valid_set.add(name)
+    valid_set = set()
+    with open(args.valid_csv) as csvfile:
+        for row in csv.reader(csvfile):
+            name = row[0].split("/")[1]
+            name = "_".join(name.split("_")[0:-1])
+            valid_set.add(name)
 
     test_sets = []
     any_test_set = set()
