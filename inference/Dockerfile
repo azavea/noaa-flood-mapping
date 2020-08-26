@@ -1,4 +1,4 @@
-FROM quay.io/azavea/raster-vision:pytorch-v0.12.0
+FROM quay.io/azavea/raster-vision:pytorch-45815af
 
 RUN pip3 install --upgrade pystac==0.4.0
 
