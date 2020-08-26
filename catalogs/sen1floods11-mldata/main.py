@@ -22,7 +22,7 @@ def mapper(item):
     source_links = list(filter(lambda l: l.rel == "source", item.links))
     for link in source_links:
         link.resolve_stac_object()
-    source_items = [link.target.clone() for link in source_links]
+    source_items = [link.target.clone() for link in source_links if "_S1" in link.target.id]
     if len(source_items) == 0:
         print("WARNING: No source images for {}".format(item.id))
 
