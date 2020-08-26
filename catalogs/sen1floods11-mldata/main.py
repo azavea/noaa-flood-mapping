@@ -59,9 +59,10 @@ def make_parser():
         help="The CSV from which to take the list of validation images"
     )
     parser.add_argument(
-        "--test-csv",
-        dest="test_csv",
-        default=None,
+        "--test-csvs",
+        dest="test_csvs",
+        default=[],
+        nargs='+',
         type=str,
         help="The CSVs from which to take the list of training images"
     )
@@ -80,26 +81,35 @@ def main():
                 name = "_".join(name.split("_")[0:-1])
                 valid_set.add(name)
 
-    if args.test_csv is not None:
+    test_sets = []
+    any_test_set = set()
+    for test_csv in args.test_csvs:
         test_set = set()
-        with open(args.test_csv) as csvfile:
+        with open(test_csv) as csvfile:
             for row in csv.reader(csvfile):
                 name = row[0].split("/")[1]
                 name = "_".join(name.split("_")[0:-1])
                 test_set.add(name)
+                any_test_set.add(name)
+        test_sets.append(test_set)
 
     def yes_validation(item):
         id = item.id
         id = "_".join(id.split("_")[0:-1])
         return id in valid_set and "Bolivia" not in item.id
 
-    def yes_test(item):
+    def yes_test_i(i, item):
         id = item.id
         id = "_".join(id.split("_")[0:-1])
-        return id in test_set
+        return id in test_sets[i]
+
+    def yes_any_test(item):
+        id = item.id
+        id = "_".join(id.split("_")[0:-1])
+        return id in any_test_set
 
     def yes_training(item):
-        return not yes_test(item) and not yes_validation(item) and "Bolivia" not in item.id
+        return not yes_any_test(item) and not yes_validation(item) and "Bolivia" not in item.id
 
     catalog = Catalog.from_file("./data/catalog/catalog.json")
 
@@ -146,7 +156,8 @@ def main():
         "labels for scenes in the validation collection",
         test_label_collection.extent,
     )
-    validation_label_items = [i.clone() for i in test_label_collection.get_items() if yes_validation(i)]
+    validation_label_items = [i.clone()
+                              for i in test_label_collection.get_items() if yes_validation(i)]
     mldata_catalog.add_child(validation_labels_collection)
     validation_labels_collection.add_items(
         [i.clone() for i in label_collection.get_items() if yes_validation(i)])
@@ -156,24 +167,26 @@ def main():
     print("Added {} items to validation catalog".format(len(validation_label_items)))
 
     # Test Imagery and Labels
-    test_imagery_collection = Collection(
-        "test_imagery",
-        "test items for experiment",
-        test_label_collection.extent
-    )
-    test_labels_collection = Collection(
-        "test_labels",
-        "labels for scenes in the test collection",
-        test_label_collection.extent,
-    )
-    test_label_items = [i.clone() for i in test_label_collection.get_items() if yes_test(i)]
-    mldata_catalog.add_child(test_labels_collection)
-    test_labels_collection.add_items([i.clone()
-                                      for i in label_collection.get_items() if yes_test(i)])
-    mldata_catalog.add_child(test_imagery_collection)
-    test_imagery_items = np.array(list(map(mapper, test_label_items))).flatten()
-    test_imagery_collection.add_items(test_imagery_items)
-    print("Added {} items to test catalog".format(len(test_label_items)))
+    for i in range(len(test_sets)):
+        test_imagery_collection = Collection(
+            "test_imagery_{}".format(i),
+            "test items for experiment",
+            test_label_collection.extent
+        )
+        test_labels_collection = Collection(
+            "test_labels_{}".format(i),
+            "labels for scenes in the test collection",
+            test_label_collection.extent,
+        )
+        test_label_items = [j.clone()
+                            for j in test_label_collection.get_items() if yes_test_i(i, j)]
+        mldata_catalog.add_child(test_labels_collection)
+        test_labels_collection.add_items([j.clone()
+                                          for j in label_collection.get_items() if yes_test_i(i, j)])
+        mldata_catalog.add_child(test_imagery_collection)
+        test_imagery_items = np.array(list(map(mapper, test_label_items))).flatten()
+        test_imagery_collection.add_items(test_imagery_items)
+        print("Added {} items to test catalog {}".format(len(test_label_items), i))
 
     print("Saving catalog...")
     mldata_catalog.normalize_hrefs("./data/mldata_{}".format(experiment))
