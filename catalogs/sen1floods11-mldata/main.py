@@ -12,20 +12,6 @@ from sklearn.model_selection import train_test_split
 EXPERIMENT = {"s2weak": "NoQC", "s1weak": "S1Flood_NoQC", "hand": "QC_v2"}
 
 
-def check_experiment(val):
-    if val in set(EXPERIMENT.keys()):
-        return val
-    else:
-        raise ValueError
-
-
-def normalized_float(val):
-    float_val = float(val)
-    if float_val < 0 or float_val > 1:
-        raise ValueError
-    return float_val
-
-
 def mapper(item):
     """ Map STAC LabelItem to list of STAC Item images with labels as links.
 
@@ -57,70 +43,13 @@ def mapper(item):
     return source_items
 
 
-def train_test_val_split(arrays, train_size, test_size, val_size, random_state):
-    """ A helper function resembling sklearn's train_test_split but with the addition of validation output """
-    proportion_sum = train_size + test_size + val_size
-    if proportion_sum != 1.0:
-        sys.exit(
-            "train, test, validation proprortions must add up to 1.0; currently {}".format(
-                proportion_sum
-            )
-        )
-
-    train, test = train_test_split(arrays, test_size=1 - train_size)
-    validation, test = train_test_split(
-        test, test_size=test_size / (test_size + val_size)
-    )
-
-    return train, test, validation
-
-
 def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "experiment",
-        type=check_experiment,
+        choices=EXPERIMENT.keys(),
+        type=str,
         help="Experiment to generate. One of {}".format(set(EXPERIMENT.keys())),
-    )
-    parser.add_argument(
-        "--sample",
-        "-s",
-        default=1.0,
-        dest="sample",
-        type=normalized_float,
-        help="Percentage of total dataset to build mldata STAC from. Useful for quick experiments",
-    )
-    parser.add_argument(
-        "--test-size",
-        "-t",
-        default=0.2,
-        dest="test_size",
-        type=normalized_float,
-        help="Percentage of dataset to use for test set",
-    )
-    parser.add_argument(
-        "--train-size",
-        "-T",
-        default=0.6,
-        dest="train_size",
-        type=normalized_float,
-        help="Percentage of dataset to use for train set",
-    )
-    parser.add_argument(
-        "--val-size",
-        "-v",
-        default=0.2,
-        dest="val_size",
-        type=normalized_float,
-        help="Percentage of dataset to use for validation set",
-    )
-    parser.add_argument(
-        "--random-seed",
-        "-r",
-        dest="random_seed",
-        default=None,
-        type=int,
-        help="Random seed for generating test / train split. Passing the same value will yield the same splits.",
     )
     parser.add_argument(
         "--valid-csv",
