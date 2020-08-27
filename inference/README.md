@@ -6,6 +6,8 @@ Build the docker container, which upgrades pystac to 0.4.0 for compatibility wit
 docker build . --tag raster-vision:pytorch-pystac-v0.4.0
 ```
 
+For STAC-creation instructions, please refer to [this page](../catalogs/sen1floods11-mldata/README.md) for instructions on how to build the STAC.
+
 Start the container ensuring:
 
 1. that environment variables are appropriately set to generate Raster Vision configuration.
