@@ -320,3 +320,8 @@ variable "aws_ecs_task_execution_role_policy_arn" {
   default = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
   type    = string
 }
+
+variable "aws_s3_full_access_policy_arn" {
+  default = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  type    = string
+}
