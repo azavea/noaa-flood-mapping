@@ -119,12 +119,12 @@ def build_dataset_from_catalog(
     )
 
 
-def get_config(runner, root_uri, catalog_root):
+def get_config(runner, root_uri, catalog_root, hours):
     # Read STAC catalog
     catalog: Catalog = Catalog.from_file(catalog_root)
 
     # TODO: pull desired channels from root collection properties
-    channel_ordering: [int] = [0, 1]
+    channel_ordering: [int] = [0, 1, 1]
 
     # TODO: pull ClassConfig info from root collection properties
     class_config: ClassConfig = ClassConfig(
@@ -137,7 +137,10 @@ def get_config(runner, root_uri, catalog_root):
     chip_sz = 512
     backend = PyTorchSemanticSegmentationConfig(
         model=SemanticSegmentationModelConfig(backbone=Backbone.resnet50),
-        solver=SolverConfig(lr=1e-4, num_epochs=4, batch_sz=4),
+        solver=SolverConfig(
+            lr=1e-4,
+            num_epochs=(int(hours) * 4 * 60 * 60) // len(dataset.train_scenes),
+            batch_sz=8),
     )
     chip_options = SemanticSegmentationChipOptions(
         window_method=SemanticSegmentationWindowMethod.sliding, chips_per_scene=1, stride=chip_sz
