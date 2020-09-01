@@ -1,3 +1,4 @@
+import argparse
 from datetime import datetime
 import json
 import os
@@ -251,9 +252,7 @@ def sentinel1_sentinel2_links_func(root_catalog, label_item, country, event_id):
     )
 
 
-@click.command(help="Build STAC Catalog for sen1floods11")
-@click.option("--debug", is_flag=True)
-def main(debug):
+def main():
     """
 
 # The Data
@@ -309,6 +308,11 @@ of the label datasets.
             - Catalog: Lon 10
                 - Item: (dir: PermJRC)
     """
+    parser = argparse.ArgumentParser(description="Build STAC Catalog for sen1floods11")
+    parser.add_argument("--debug", action="store_true")
+    args = parser.parse_args()
+    debug = args.debug
+
     storage = S3Storage("sen1floods11-data")
 
     catalog_description = "Bonafilia, D., Tellman, B., Anderson, T., Issenberg, E. 2020. Sen1Floods11: a georeferenced dataset to train and test deep learning flood algorithms for Sentinel-1. The IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Workshops, 2020, pp. 210-211. Available Open access at: http://openaccess.thecvf.com/content_CVPRW_2020/html/w11/Bonafilia_Sen1Floods11_A_Georeferenced_Dataset_to_Train_and_Test_Deep_Learning_CVPRW_2020_paper.html"  # noqa: E501

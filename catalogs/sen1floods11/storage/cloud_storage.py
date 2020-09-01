@@ -4,7 +4,6 @@ from os.path import exists, isfile, join
 from shutil import copyfile
 
 import boto3
-from google.cloud import storage
 
 
 class Storage(ABC):
@@ -29,23 +28,6 @@ class FileStorage(Storage):
     def download(self, path, target_filename):
         if not exists(target_filename):
             copyfile(path, target_filename)
-
-
-class GoogleCloudStorage(Storage):
-    def __init__(self, bucket_name):
-        self.client = storage.Client()
-        self.bucket = self.client.bucket(bucket_name)
-
-    def ls(self, path):
-        for blob in self.client.list_blobs(self.bucket, prefix=path):
-            yield "https://storage.googleapis.com/{}/{}".format(
-                self.bucket.name, blob.name
-            )
-
-    def download(self, path, target_filename):
-        if not exists(target_filename):
-            blob = self.bucket.blob(path)
-            blob.download_to_filename(target_filename)
 
 
 class S3Storage(Storage):

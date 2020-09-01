@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-import sys
 import csv
 
 import numpy as np
 from pystac import Catalog, CatalogType, Collection, Link, LinkType
-from sklearn.model_selection import train_test_split
 
 # Map of experiment name to collection name in sen1floods11 STAC catalog
 EXPERIMENT = {"s2weak": "NoQC", "s1weak": "S1Flood_NoQC", "hand": "QC_v2"}
@@ -24,7 +22,9 @@ def mapper(item):
     source_links = list(filter(lambda l: l.rel == "source", item.links))
     for link in source_links:
         link.resolve_stac_object()
-    source_items = [link.target.clone() for link in source_links if "_S1" in link.target.id]
+    source_items = [
+        link.target.clone() for link in source_links if "_S1" in link.target.id
+    ]
     if len(source_items) == 0:
         print("WARNING: No source images for {}".format(item.id))
         item_id = "_".join(item.id.split("_")[0:-1])
@@ -63,15 +63,15 @@ def make_parser():
         dest="valid_csv",
         required=True,
         type=str,
-        help="The CSV from which to take the list of validation images"
+        help="The CSV from which to take the list of validation images",
     )
     parser.add_argument(
         "--test-csvs",
         dest="test_csvs",
         required=True,
-        nargs='+',
+        nargs="+",
         type=str,
-        help="The CSVs from which to take the list of training images"
+        help="The CSVs from which to take the list of training images",
     )
     return parser
 
@@ -115,7 +115,11 @@ def main():
         return id in any_test_set
 
     def yes_training(item):
-        return not yes_any_test(item) and not yes_validation(item) and "Bolivia" not in item.id
+        return (
+            not yes_any_test(item)
+            and not yes_validation(item)
+            and "Bolivia" not in item.id
+        )
 
     catalog = Catalog.from_file("./data/catalog/catalog.json")
 
@@ -128,24 +132,27 @@ def main():
     # Top-Level
     mldata_catalog = Catalog(
         "{}_mldata".format(experiment),
-        "Training/Validation/Test split for {} experiment in sen1floods11".format(experiment),
+        "Training/Validation/Test split for {} experiment in sen1floods11".format(
+            experiment
+        ),
     )
 
     # Training Imagery and Labels
     training_imagery_collection = Collection(
-        "training_imagery",
-        "training items for experiment",
-        label_collection.extent
+        "training_imagery", "training items for experiment", label_collection.extent
     )
     training_labels_collection = Collection(
         "training_labels",
         "labels for scenes in the training collection",
         label_collection.extent,
     )
-    training_label_items = [i.clone() for i in label_collection.get_items() if yes_training(i)]
+    training_label_items = [
+        i.clone() for i in label_collection.get_items() if yes_training(i)
+    ]
     mldata_catalog.add_child(training_labels_collection)
     training_labels_collection.add_items(
-        [i.clone() for i in label_collection.get_items() if yes_training(i)])
+        [i.clone() for i in label_collection.get_items() if yes_training(i)]
+    )
     mldata_catalog.add_child(training_imagery_collection)
     training_imagery_items = np.array(list(map(mapper, training_label_items))).flatten()
     training_imagery_collection.add_items(training_imagery_items)
@@ -155,20 +162,24 @@ def main():
     validation_imagery_collection = Collection(
         "validation_imagery",
         "validation items for experiment",
-        test_label_collection.extent
+        test_label_collection.extent,
     )
     validation_labels_collection = Collection(
         "validation_labels",
         "labels for scenes in the validation collection",
         test_label_collection.extent,
     )
-    validation_label_items = [i.clone()
-                              for i in test_label_collection.get_items() if yes_validation(i)]
+    validation_label_items = [
+        i.clone() for i in test_label_collection.get_items() if yes_validation(i)
+    ]
     mldata_catalog.add_child(validation_labels_collection)
     validation_labels_collection.add_items(
-        [i.clone() for i in label_collection.get_items() if yes_validation(i)])
+        [i.clone() for i in label_collection.get_items() if yes_validation(i)]
+    )
     mldata_catalog.add_child(validation_imagery_collection)
-    validation_imagery_items = np.array(list(map(mapper, validation_label_items))).flatten()
+    validation_imagery_items = np.array(
+        list(map(mapper, validation_label_items))
+    ).flatten()
     validation_imagery_collection.add_items(validation_imagery_items)
     print("Added {} items to validation catalog".format(len(validation_label_items)))
 
@@ -177,18 +188,20 @@ def main():
         test_imagery_collection = Collection(
             "test_imagery_{}".format(i),
             "test items for experiment",
-            test_label_collection.extent
+            test_label_collection.extent,
         )
         test_labels_collection = Collection(
             "test_labels_{}".format(i),
             "labels for scenes in the test collection",
             test_label_collection.extent,
         )
-        test_label_items = [j.clone()
-                            for j in test_label_collection.get_items() if yes_test_i(i, j)]
+        test_label_items = [
+            j.clone() for j in test_label_collection.get_items() if yes_test_i(i, j)
+        ]
         mldata_catalog.add_child(test_labels_collection)
-        test_labels_collection.add_items([j.clone()
-                                          for j in label_collection.get_items() if yes_test_i(i, j)])
+        test_labels_collection.add_items(
+            [j.clone() for j in label_collection.get_items() if yes_test_i(i, j)]
+        )
         mldata_catalog.add_child(test_imagery_collection)
         test_imagery_items = np.array(list(map(mapper, test_label_items))).flatten()
         test_imagery_collection.add_items(test_imagery_items)

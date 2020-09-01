@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     items = []
     running_spatial_extent = (0, 0, 0, 0)
-    root_path = "./catalog"
+    root_path = "./data/catalog"
     running_start_dt = None
     running_end_dt = None
     with fiona.open(shp_path) as fc:
