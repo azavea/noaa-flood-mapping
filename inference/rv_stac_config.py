@@ -2,27 +2,30 @@
 
 import os
 from os.path import join
+from typing import Generator
 
-from rastervision.core.rv_pipeline import *
+from pystac import STAC_IO, Catalog, Collection, Item, MediaType
 from rastervision.core.backend import *
 from rastervision.core.data import *
+from rastervision.core.data import (ClassConfig, DatasetConfig,
+                                    GeoJSONVectorSourceConfig,
+                                    RasterioSourceConfig,
+                                    RasterizedSourceConfig, RasterizerConfig,
+                                    SceneConfig,
+                                    SemanticSegmentationLabelSourceConfig,
+                                    StatsTransformerConfig)
+from rastervision.core.rv_pipeline import *
+from rastervision.gdal_vsi.vsi_file_system import VsiFileSystem
 from rastervision.pytorch_backend import *
 from rastervision.pytorch_learner import *
-from rastervision.gdal_vsi.vsi_file_system import VsiFileSystem
 
-from pystac import Catalog, Collection, Item, MediaType
-from rastervision.core.data import (
-    ClassConfig,
-    RasterioSourceConfig,
-    StatsTransformerConfig,
-    SemanticSegmentationLabelSourceConfig,
-    RasterizedSourceConfig,
-    GeoJSONVectorSourceConfig,
-    RasterizerConfig,
-    SceneConfig,
-    DatasetConfig,
-)
-from typing import Generator
+
+def noop_write_method(uri, txt):
+    pass
+
+
+STAC_IO.read_text_method = VsiFileSystem.read_str
+STAC_IO.write_text_method = noop_write_method
 
 
 def image_sources(item: Item, channel_order: [int]):
@@ -55,7 +58,8 @@ def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
 
         # semantic segmentation label configuration; convert to tif as necesary
         if label_asset.media_type == MediaType.GEOTIFF:
-            raster_label_source = RasterioSourceConfig(uris=[label_asset.href],)
+            raster_label_source = RasterioSourceConfig(
+                uris=[label_asset.href],)
         else:
             vector_label_source = GeoJSONVectorSourceConfig(
                 uri=label_uri, default_class_id=0, ignore_crs_field=True
@@ -93,62 +97,60 @@ def build_dataset_from_catalog(
 ) -> DatasetConfig:
 
     # Read taining scenes from STAC
-    train_collection = catalog.get_child(id="train")
+    train_collection = catalog.get_child(id="training_imagery")  # ???
+    train_collection = catalog.get_child(id="training_imagery")
     train_scenes = make_scenes(train_collection, channel_order)
 
-    # Read testing scenes from STAC
-    test_collection = catalog.get_child(id="test")
-    test_scenes = make_scenes(test_collection, channel_order)
-
     # Read validation scenes from STAC
-    validation_collection = catalog.get_child(id="validation")
+    validation_collection = catalog.get_child(id="validation_imagery")
     validation_scenes = make_scenes(validation_collection, channel_order)
+
+    # Read testing scenes from STAC
+    test_collection_0 = catalog.get_child(id="test_imagery_0")
+    test_scenes_0 = make_scenes(test_collection_0, channel_order)
+    test_collection_1 = catalog.get_child(id="test_imagery_1")
+    test_scenes_1 = make_scenes(test_collection_1, channel_order)
 
     return DatasetConfig(
         class_config=class_config,
         train_scenes=train_scenes,
-        test_scenes=test_scenes,
+        test_scenes=test_scenes_0,
         validation_scenes=validation_scenes,
     )
 
 
-def get_config(runner):
-    output_root_uri = os.environ.get("OUTPUT_ROOT_URI")
-    if output_root_uri is None:
-        sys.exit("No output URI set. Set the environment variable OUTPUT_ROOT_URI")
-
-    catalog_root = os.environ.get("CATALOG_ROOT_URI")
-    if catalog_root is None:
-        sys.exit("No catalog URI set. Set the environment variable CATALOG_ROOT_URI")
-
+def get_config(runner, root_uri, catalog_root, hours):
     # Read STAC catalog
     catalog: Catalog = Catalog.from_file(catalog_root)
 
     # TODO: pull desired channels from root collection properties
-    channel_ordering: [int] = [0, 1, 2]
+    channel_ordering: [int] = [0, 1, 1]
 
     # TODO: pull ClassConfig info from root collection properties
     class_config: ClassConfig = ClassConfig(
         names=["not water", "water"], colors=["white", "blue"]
     )
 
-    dataset = build_dataset_from_catalog(catalog, channel_ordering, class_config)
+    dataset = build_dataset_from_catalog(
+        catalog, channel_ordering, class_config)
 
-    chip_sz = 300
+    chip_sz = 512
     backend = PyTorchSemanticSegmentationConfig(
         model=SemanticSegmentationModelConfig(backbone=Backbone.resnet50),
-        solver=SolverConfig(lr=1e-4, num_epochs=1, batch_sz=2),
+        solver=SolverConfig(
+            lr=1e-4,
+            num_epochs=(int(hours) * 4 * 60 * 60) // len(dataset.train_scenes),
+            batch_sz=8),
     )
     chip_options = SemanticSegmentationChipOptions(
-        window_method=SemanticSegmentationWindowMethod.random_sample, chips_per_scene=10
+        window_method=SemanticSegmentationWindowMethod.sliding, chips_per_scene=1, stride=chip_sz
     )
 
     return SemanticSegmentationConfig(
-        root_uri=output_root_uri,
+        root_uri=root_uri,
         dataset=dataset,
         backend=backend,
         train_chip_sz=chip_sz,
         predict_chip_sz=chip_sz,
         chip_options=chip_options,
     )
-
