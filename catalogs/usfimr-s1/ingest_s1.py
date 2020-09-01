@@ -6,6 +6,7 @@ import argparse
 import json
 
 
+import boto3
 from area import area
 from s3_stac_io import register_s3_io
 from request_builders import (
@@ -107,8 +108,6 @@ if __name__ == "__main__":
             print(
                 "No S1 results found for USFIMR ID={flood_id}".format(flood_id=flood.id)
             )
-
-    import boto3
 
     s3 = boto3.resource("s3")
     bucket = s3.Bucket("noaafloodmapping-sentinelhub-batch-eu-central-1")
