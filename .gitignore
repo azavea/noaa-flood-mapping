@@ -146,3 +146,5 @@ dmypy.json
 cython_debug/
 
 *.csv
+
+.vscode
