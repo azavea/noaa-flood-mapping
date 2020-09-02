@@ -1,4 +1,5 @@
 #!/bin/sh
+set -ex
 
 HUC6=$1
 S3_URI=$2
@@ -52,7 +53,7 @@ mkdir -p /tmp/$HUC6-out
 echo "================================="
 echo "Generating data..."
 echo "================================="
-cogify ${HUC6}hand
+cogify_bilinear ${HUC6}hand
 shp2geojson ${HUC6}-wbd
 shp2geojson ${HUC6}-flows
 shp2geojson ${HUC6}-inlets
