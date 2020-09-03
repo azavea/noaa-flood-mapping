@@ -50,9 +50,10 @@ if __name__ == "__main__":
         aggregate_bounds = None
 
         imagery_objects = [obj for obj in objects if obj.content_type == "image/tiff"]
-        sorted_objects = imagery_objects.sort(key=lambda obj: obj.)
+        imagery_grouped = groupby(
+            imagery_objects, key=lambda obj: obj.key.split("/")[-2]
+        )
 
-        print(imagery_objects)
         sentinelhub_request = json.loads(
             [obj for obj in objects if obj.key.endswith("json")][0]
             .get()["Body"]
@@ -67,12 +68,14 @@ if __name__ == "__main__":
         temporal_extent = TemporalExtent(intervals=[[start_time, end_time]])
 
         stac_items = []
-        for image in imagery_objects:
-            print("from img objects", image)
-            s3_path = "s3://" + image.bucket_name + "/" + image.key
+        for group_id, image_group in imagery_grouped:
+            assets = []
+            for image in image_group:
+                s3_path = "s3://" + image.bucket_name + "/" + image.key
 
-            with rio.open(s3_path) as img:
-                bounds = img.bounds
+                with rio.open(s3_path) as img:
+                    bounds = img.bounds
+                assets.append(Asset(s3_path))
 
             if aggregate_bounds is None:
                 aggregate_bounds = bounds
@@ -89,7 +92,7 @@ if __name__ == "__main__":
             )
             item_extent = Extent(item_spatial_extent, temporal_extent)
             image_item = Item(
-                s3_path.split("/")[-2],
+                group_id,
                 geometry=mapping(
                     Polygon(
                         [
@@ -105,6 +108,9 @@ if __name__ == "__main__":
                 datetime=start_time,
                 properties={},
             )
+            for asset in assets:
+                image_item.add_asset(asset.href.split("/")[-1].split(".")[0], asset)
+
             stac_items.append(image_item)
         aggregate_spatial_extent = SpatialExtent(
             [
