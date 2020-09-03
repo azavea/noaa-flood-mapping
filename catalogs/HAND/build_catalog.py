@@ -53,7 +53,7 @@ if __name__ == "__main__":
             huc_item = Item(fid, geom, bbox_list, version_dt, {})
 
             hand_asset = Asset(
-                href="{}/{}/{}-hand.tif".format(args.root_uri, fid, fid),
+                href="{}/{}/{}hand.tif".format(args.root_uri, fid, fid),
                 description="HAND raster, buffer removed, final result",
                 media_type="image/tiff; application=geotiff",
             )
