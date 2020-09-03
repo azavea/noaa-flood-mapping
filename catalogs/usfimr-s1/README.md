@@ -18,6 +18,15 @@ Kick off the data ingest like this:
 ./ingest_s1.py --oauth-id '<user-id>' --oauth-secret '<user-secret>'
 ```
 
+At this point, it might be prudent to copy data from the EU region bucket configured above to one which
+will cost less for repeated reads/writes. Killing two birds with one stone, the `reproject_tiffs.sh` script
+will recursively copy from {INPUT_ROOT} to {OUTPUT_ROOT}, preserving directory structure and reprojecting
+tiffs from UTM to 4326 as it goes.
+
+```bash
+./reproject_tiffs.sh s3://${EU_BUCKET} s3://${4326-bucket}
+```
+
 ## Building the Catalog
 
 Install all python requirements
