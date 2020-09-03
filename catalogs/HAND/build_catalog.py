@@ -199,7 +199,7 @@ if __name__ == "__main__":
         root_collection.add_item(item)
 
     # Save Complete Catalog
-    root_path = "./catalog"
+    root_path = "./data/catalog"
     root_collection.normalize_and_save(
         root_path, catalog_type=CatalogType.SELF_CONTAINED
     )

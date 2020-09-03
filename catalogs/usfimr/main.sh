@@ -1,5 +1,7 @@
 #!/bin/sh
 
+cd $(dirname "$0")
+
 if test -f ./data/USFIMR_merged.zip; then
   echo "USFIMR shapefile already downloaded. Continuing..."
 else
@@ -13,7 +15,7 @@ else
   unzip ./data/USFIMR_merged.zip -d ./data
 fi
 
-if test -d ./catalog; then
+if test -d ./data/catalog; then
   echo "STAC catalog already exists."
 else
   echo "Generating STAC Catalog..."

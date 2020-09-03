@@ -1,0 +1,10 @@
+version: '2.4'
+services:
+  catalogs:
+    build: ./catalogs
+    image: noaa-flood-catalogs
+    environment:
+      - AWS_PROFILE=noaa-flood
+    volumes:
+      - ./catalogs:/opt/catalogs
+      - $HOME/.aws:/root/.aws:ro
