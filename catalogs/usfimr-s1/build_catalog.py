@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+from datetime import datetime
+import json
+import argparse
+from itertools import groupby
+
 from pystac import (
     Asset,
     CatalogType,
@@ -14,11 +19,6 @@ import boto3
 import urllib3
 import rasterio as rio
 from shapely.geometry import Polygon, mapping
-
-from datetime import datetime
-import json
-import argparse
-from itertools import groupby
 
 
 if __name__ == "__main__":

@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
 from datetime import date, time, datetime
-import urllib3
 import argparse
 import json
 
 
+import urllib3
 import boto3
 from area import area
+from pystac import Collection
+
 from s3_stac_io import register_s3_io
 from request_builders import (
     get_sentinelhub_token,
@@ -18,7 +20,6 @@ from request_builders import (
     check_batch_status,
 )
 
-from pystac import Collection
 
 
 def get_flood_temporal_bounds(flood):

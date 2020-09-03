@@ -35,7 +35,8 @@ Install all python requirements
 pip3 install -r requirements.txt
 ```
 
-Run `build_catalog.py`, providing the s3 root at which images have been ingested. For example
+Run `build_catalog.py`, providing the s3 root at which images have been ingested. Be sure to point at a path
+which contains tiffs in a 4326 projection!
 
 ```bash
 ./build_catalog.py --imagery-root-s3 <s3-path>
