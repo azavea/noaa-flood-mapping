@@ -10,6 +10,8 @@ that is available, an oauth client can be generated from within the user dashboa
 a user ID and a secret which jointly are sufficient to generate the token we will need to carry out
 Sentinel Hub API calls.
 
+Prepare the EU bucket following [these instructions](https://docs.sentinel-hub.com/api/latest/api/batch/#aws-s3-bucket-settings)
+
 Kick off the data ingest like this:
 
 ```bash

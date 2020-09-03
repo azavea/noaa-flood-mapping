@@ -41,6 +41,8 @@ if __name__ == "__main__":
 
     catalog = Catalog("glofimr-sar", catalog_description, title=catalog_title)
 
+    # We know the IDs used here, so we'll use them for keys
+    # TODO: make the IDs/these keys something more descriptive
     flood_data = {"1": [], "2": [], "3": [], "15": [], "16": []}
     for obj in filtered_objects:
         flood_data[obj.key.split("/")[0]].append(obj.Object())
@@ -49,6 +51,7 @@ if __name__ == "__main__":
     for flood_id, objects in flood_data.items():
         aggregate_bounds = None
 
+        # these objects are ultimately assets that we'd like to group by tile ID, we do that here
         imagery_objects = [obj for obj in objects if obj.content_type == "image/tiff"]
         imagery_grouped = groupby(
             imagery_objects, key=lambda obj: obj.key.split("/")[-2]
@@ -69,10 +72,13 @@ if __name__ == "__main__":
 
         stac_items = []
         for group_id, image_group in imagery_grouped:
+
+            # assemble assets so that they might be grouped (without duplication) in items
             assets = []
             for image in image_group:
                 s3_path = "s3://" + image.bucket_name + "/" + image.key
 
+                # The extents should be the same, so whichever one is checked last should be fine
                 with rio.open(s3_path) as img:
                     bounds = img.bounds
                 assets.append(Asset(s3_path))
