@@ -33,7 +33,7 @@ def coregister_row(row):
         coregister_raster(row["hand_uri"], row["sar_uri"], tmp_file)
 
         sar_url = urlparse(row["sar_uri"])
-        hand_sar_path = "{}/HAND.tiff".format(os.path.dirname(sar_url.path)).lstrip("/")
+        hand_sar_path = "{}/HAND.tif".format(os.path.dirname(sar_url.path)).lstrip("/")
         s3_client = boto3.client("s3")
         s3_client.upload_file(tmp_file, sar_url.netloc, hand_sar_path)
 
