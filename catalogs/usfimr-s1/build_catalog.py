@@ -28,14 +28,14 @@ if __name__ == "__main__":
 
     parsed_s3_path = urllib3.util.parse_url(args.imagery_root_s3)
     bucket = parsed_s3_path.netloc
-    try:
-        prefix = parsed_s3_path.path[1:]
-    except TypeError:
-        prefix = ''
 
     s3 = boto3.resource("s3")
     bucket = s3.Bucket(bucket)
-    filtered_objects = bucket.objects.filter(Prefix=prefix)
+    try:
+        prefix = parsed_s3_path.path[1:]
+        filtered_objects = bucket.objects.filter(Prefix=prefix)
+    except TypeError:
+        filtered_objects = bucket.objects.all()
 
     catalog_description = (
         "Sentinel-1 imagery corresponding to flood events catalogued within GLOFIMR"
@@ -47,8 +47,12 @@ if __name__ == "__main__":
     # We know the IDs used here (they are derived from the incrementing ID from the GLOFIMR shapefile)
     # TODO: make the IDs/these keys something more descriptive
     flood_data = {"1": [], "2": [], "3": [], "15": [], "16": []}
-    for obj in filtered_objects:
-        flood_data[obj.key.split("/")[0]].append(obj.Object())
+    for filtered_obj in filtered_objects:
+        try:
+            flood_data[filtered_obj.key.split("/")[0]].append(filtered_obj.Object())
+        except KeyError:
+            flood_data[filtered_obj.key.split("/")[1]].append(filtered_obj.Object())
+
 
     subcollections = []
     for flood_id, objects in flood_data.items():
@@ -101,7 +105,7 @@ if __name__ == "__main__":
             )
             item_extent = Extent(item_spatial_extent, temporal_extent)
             image_item = Item(
-                group_id,
+                "flood_" + flood_id + "_chip_" + group_id,
                 geometry=mapping(
                     Polygon(
                         [
@@ -143,6 +147,6 @@ if __name__ == "__main__":
         catalog.add_child(collection)
 
     # Save Complete Catalog
-    root_path = "./catalog"
+    root_path = "./data/catalog"
     catalog.normalize_and_save(root_path, catalog_type=CatalogType.SELF_CONTAINED)
     print("Saved STAC Catalog {} to {}...".format(catalog.id, root_path))
