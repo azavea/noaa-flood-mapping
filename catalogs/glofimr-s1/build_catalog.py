@@ -1,13 +1,23 @@
+from functools import partial
+import logging
 import os
+import sys
 from tempfile import TemporaryDirectory
 from urllib.parse import urlparse
 
 import boto3
 import geopandas as gpd
+import progressbar
 import pystac
 
 from coregister import coregister_raster
 from stac_df import pystac_catalog_to_dataframe
+
+# Must call before setting up logger
+progressbar.streams.wrap_stderr()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
 def https_to_s3_url(https_url_str):
@@ -26,9 +36,14 @@ def append_s3_uris(row):
     return row
 
 
-def coregister_row(row):
+def coregister_row(progress_bar, row):
     with TemporaryDirectory() as tmp_dir:
-        tmp_file = os.path.join(tmp_dir, "HAND.tiff")
+        logger.info(
+            "Generating coraster for {} using HAND {}".format(
+                row["id_sar"], row["id_hand"]
+            )
+        )
+        tmp_file = os.path.join(tmp_dir, "HAND.tif")
 
         coregister_raster(row["hand_uri"], row["sar_uri"], tmp_file)
 
@@ -38,8 +53,9 @@ def coregister_row(row):
         s3_client.upload_file(tmp_file, sar_url.netloc, hand_sar_path)
 
         output_uri = "{}://{}/{}".format(sar_url.scheme, sar_url.netloc, hand_sar_path)
-        print("Saved coraster to {}".format(output_uri))
+        logger.info("\tSaved to {}".format(output_uri))
         row["hand_sar_uri"] = output_uri
+        progress_bar.update(progress_bar.value + 1)
     return row
 
 
@@ -55,11 +71,15 @@ def main():
     sar_hand_df = gpd.sjoin(
         sar_df, hand_df, op="intersects", how="inner", lsuffix="sar", rsuffix="hand"
     )
-    sar_hand_df_w_uris = sar_hand_df.apply(append_s3_uris, axis=1)
-    print(sar_hand_df_w_uris.head())
+    sar_hand_df_w_uris = sar_hand_df.apply(append_s3_uris, axis=1).head(3)
 
     # Generate the hand corasters
-    sar_hand_df_w_uris.head().apply(coregister_row, axis=1)
+    total_count = len(sar_hand_df_w_uris.index)
+    bar = progressbar.ProgressBar(
+        min_value=0, initial_value=0, max_value=total_count
+    ).start()
+    sar_hand_df_w_uris.apply(partial(coregister_row, bar), axis=1)
+    bar.finish()
 
 
 if __name__ == "__main__":
