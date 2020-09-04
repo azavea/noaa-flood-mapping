@@ -10,7 +10,8 @@ that is available, an oauth client can be generated from within the user dashboa
 a user ID and a secret which jointly are sufficient to generate the token we will need to carry out
 Sentinel Hub API calls.
 
-Prepare the EU bucket following [these instructions](https://docs.sentinel-hub.com/api/latest/api/batch/#aws-s3-bucket-settings)
+Prepare the EU bucket following [these instructions](https://docs.sentinel-hub.com/api/latest/api/batch/#aws-s3-bucket-settings). One such bucket has already been created for those with the credentials to access
+it: `s3://noaafloodmapping-sentinelhub-batch-eu-central-1`
 
 Kick off the data ingest like this:
 

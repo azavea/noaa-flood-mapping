@@ -28,7 +28,10 @@ if __name__ == "__main__":
 
     parsed_s3_path = urllib3.util.parse_url(args.imagery_root_s3)
     bucket = parsed_s3_path.netloc
-    prefix = parsed_s3_path.path[1:]
+    try:
+        prefix = parsed_s3_path.path[1:]
+    except TypeError:
+        prefix = ''
 
     s3 = boto3.resource("s3")
     bucket = s3.Bucket(bucket)
@@ -41,7 +44,7 @@ if __name__ == "__main__":
 
     catalog = Catalog("glofimr-sar", catalog_description, title=catalog_title)
 
-    # We know the IDs used here, so we'll use them for keys
+    # We know the IDs used here (they are derived from the incrementing ID from the GLOFIMR shapefile)
     # TODO: make the IDs/these keys something more descriptive
     flood_data = {"1": [], "2": [], "3": [], "15": [], "16": []}
     for obj in filtered_objects:

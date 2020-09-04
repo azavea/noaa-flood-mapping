@@ -80,16 +80,14 @@ def search_sentinelhub_s1(flood_temporal_bounds, flood_bbox, connection_pool, to
     return r
 
 
-def create_batch_request(flood_item, flood_temporal_bounds, connection_pool, token):
+def create_batch_request(flood_item, flood_temporal_bounds, ingest_path,connection_pool, token):
     with open("ingest_s1_evalscript.js", "r") as script:
         evalscript = script.read()
     parameters = {
         "tilingGrid": {"id": 0, "resolution": "10"},
         "output": {
             "cogOutput": True,
-            "defaultTilePath": "s3://noaafloodmapping-sentinelhub-batch-eu-central-1/glofimr/{}/<requestId>/<tileName>/<outputId>.tiff".format(
-                flood_item.id
-            ),
+            "defaultTilePath": ingest_path,
         },
         "description": "Batch request for S1 data related to {}".format(flood_item.id),
         "processRequest": {

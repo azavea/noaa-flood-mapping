@@ -29,10 +29,6 @@ def get_flood_temporal_bounds(flood):
     date_min = datetime.combine(flood_date, flood_start_time)
     date_max = datetime.combine(flood_date, flood_end_time)
 
-    # Widen the min/max to hopefully get more results
-    # date_min = date_min - timedelta(hours=24)
-    # date_max = date_max + timedelta(hours=24)
-
     return date_min, date_max
 
 
@@ -133,8 +129,9 @@ if __name__ == "__main__":
             temporal_bounds_string = (
                 date_min.isoformat() + "Z/" + date_max.isoformat() + "Z"
             )
+            batch_ingest_path = "s3://noaafloodmapping-sentinelhub-batch-eu-central-1/glofimr/{}/<requestId>/<tileName>/<outputId>.tiff".format(flood.id)
             batch_creation_request = create_batch_request(
-                flood, temporal_bounds_string, http_pool, token
+                flood, temporal_bounds_string, batch_ingest_path, http_pool, token
             )
             # from IPython import embed; embed()
             batch_creation_response = json.loads(
@@ -158,6 +155,7 @@ if __name__ == "__main__":
                         )
                     )
                     print("SUCCESSFUL REQUEST ID: {}".format(batch_request_id))
+                    print("Data ingested to {}".format(batch_ingest_path)
                     break
                 elif status == "FAILED":
                     print("Flood ingest for ID {} FAILED".format(flood.id))
