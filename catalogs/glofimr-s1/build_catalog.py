@@ -1,5 +1,8 @@
+import os
+from tempfile import TemporaryDirectory
 from urllib.parse import urlparse
 
+import boto3
 import geopandas as gpd
 import pystac
 
@@ -13,41 +16,50 @@ def https_to_s3_url(https_url_str):
     return "s3://{}{}".format(bucket, https_url.path)
 
 
-def assets_to_s3_url(row):
-    row["assets_hand"] = https_to_s3_url(
+def append_s3_uris(row):
+    row["hand_uri"] = https_to_s3_url(
         row.get("assets_hand", {}).get("hand", {}).get("href", "")
     )
-    row["assets_sar"] = https_to_s3_url(
-        row.get("assets_sar", {}).get("sar", {}).get("href", "")
+    row["sar_uri"] = https_to_s3_url(
+        row.get("assets_sar", {}).get("MASK", {}).get("href", "")
     )
+    return row
+
+
+def coregister_row(row):
+    with TemporaryDirectory() as tmp_dir:
+        tmp_file = os.path.join(tmp_dir, "HAND.tiff")
+
+        coregister_raster(row["hand_uri"], row["sar_uri"], tmp_file)
+
+        sar_url = urlparse(row["sar_uri"])
+        hand_sar_path = "{}/HAND.tiff".format(os.path.dirname(sar_url.path)).lstrip("/")
+        s3_client = boto3.client("s3")
+        s3_client.upload_file(tmp_file, sar_url.netloc, hand_sar_path)
+
+        output_uri = "{}://{}/{}".format(sar_url.scheme, sar_url.netloc, hand_sar_path)
+        print("Saved coraster to {}".format(output_uri))
+        row["hand_sar_uri"] = output_uri
     return row
 
 
 def main():
     # Load S1 chips catalog
     sar_catalog = pystac.Catalog.from_file("./data/usfimr-sar-catalog/catalog.json")
-    sar_df = pystac_catalog_to_dataframe(sar_catalog, crs="EPSG:32616")
-    # TODO: Cleanup -- will eventually already be in 4326
-    sar_df = sar_df.to_crs("EPSG:4326")
+    sar_df = pystac_catalog_to_dataframe(sar_catalog)
 
     # Load HAND catalog
     hand_catalog = pystac.Collection.from_file("./data/hand-catalog/collection.json")
     hand_df = pystac_catalog_to_dataframe(hand_catalog)
-    hand_df = hand_df.to_crs("EPSG:4326")
 
     sar_hand_df = gpd.sjoin(
         sar_df, hand_df, op="intersects", how="inner", lsuffix="sar", rsuffix="hand"
     )
-    sar_hand_df = sar_hand_df[
-        ["geometry", "bbox_sar", "index_hand", "assets_hand", "assets_sar"]
-    ]
-    sar_hand_df = sar_hand_df.apply(assets_to_s3_url, axis=1)
+    sar_hand_df_w_uris = sar_hand_df.apply(append_s3_uris, axis=1)
+    print(sar_hand_df_w_uris.head())
 
-    coregister_raster(
-        "s3://hand-data/080102/080102hand.tif",
-        "s3://glofimr-sar-4326/1/654e5272-a61c-4d69-bc71-aef74ccaf85f/16SCF_0_4/MASK.tiff",
-        "./data/16SCF_0_4-HAND.tiff",
-    )
+    # Generate the hand corasters
+    sar_hand_df_w_uris.head().apply(coregister_row, axis=1)
 
 
 if __name__ == "__main__":
