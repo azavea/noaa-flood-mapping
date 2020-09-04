@@ -71,7 +71,7 @@ def main():
     sar_hand_df = gpd.sjoin(
         sar_df, hand_df, op="intersects", how="inner", lsuffix="sar", rsuffix="hand"
     )
-    sar_hand_df_w_uris = sar_hand_df.apply(append_s3_uris, axis=1).head(3)
+    sar_hand_df_w_uris = sar_hand_df.apply(append_s3_uris, axis=1)
 
     # Generate the hand corasters
     total_count = len(sar_hand_df_w_uris.index)
