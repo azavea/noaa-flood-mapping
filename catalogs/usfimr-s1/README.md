@@ -1,44 +1,24 @@
 # USFIMR Correlated S1 Imagery STAC Catalog
 
-This project is responsible for generating an S1 dataset and the corresponding STAC catalog. This S1
-imagery is correlated with any matching floods from the [USFIMR dataset](https://cfim.ornl.gov/data/).
+This project is responsible for generating an S1 dataset correlated with [USFIMR floods](https://cfim.ornl.gov/data/) and the HAND dataset. Then it generates the corresponding STAC catalog.
 
-## Data ingest
+In order to generate the data and STAC catalog, the following steps are performed:
 
-A Sentinel Hub account with beta access to batch requests is necessary to complete the ingest. Once
-that is available, an oauth client can be generated from within the user dashboard. This will provide
-a user ID and a secret which jointly are sufficient to generate the token we will need to carry out
-Sentinel Hub API calls.
+1. Compute intersection of S1 chips and USFIMR dataset via the SentinelHub Search API (`ingest_s1.py`)
+1. Retrieve orthorectified S1 GRD chips intersecting each USFIMR flood area via the SentinelHub Batch API, saved to an S3 bucket (`ingest_s1.py`)
+1. Reproject SentinelHub S1 GRD chips to 4326 and save to an S3 bucket (`reproject_tiffs.sh`)
+1. Generate STAC Catalog automatically by scanning the bucket containing the 4326 S1 GRD chips (`build_catalog.py`). The catalog is written to `./data/catalog`.
 
-Prepare the EU bucket following [these instructions](https://docs.sentinel-hub.com/api/latest/api/batch/#aws-s3-bucket-settings). One such bucket has already been created for those with the credentials to access
-it: `s3://noaafloodmapping-sentinelhub-batch-eu-central-1`
+`main.sh` serves as an example of how to run each of these scripts in sequence to achieve the desired output.
 
-Kick off the data ingest like this:
+Once the prerequisites described below are in place, the pipeline can be run with `docker-compose run --rm catalogs usfimr-s1`.
 
-```bash
-./ingest_s1.py --oauth-id '<user-id>' --oauth-secret '<user-secret>'
-```
+## Prerequisites
 
-At this point, it might be prudent to copy data from the EU region bucket configured above to one which
-will cost less for repeated reads/writes. Killing two birds with one stone, the `reproject_tiffs.sh` script
-will recursively copy from {INPUT_ROOT} to {OUTPUT_ROOT}, preserving directory structure and reprojecting
-tiffs from UTM to 4326 as it goes.
+### Data Ingest -- SentinelHub Account
 
-```bash
-./reproject_tiffs.sh s3://${EU_BUCKET} s3://${4326-bucket}
-```
+A Sentinel Hub account with beta access to batch requests is necessary to complete the ingest. Once that is available, an oauth client can be generated from within the user dashboard. This will provide a user ID and a secret which jointly are sufficient to generate the token we will need to carry out Sentinel Hub API calls. Set these credentials in your shell environment as `SENTINELHUB_OAUTH_ID` and `SENTINELHUB_OAUTH_SECRET`.
 
-## Building the Catalog
+### Data Ingest -- SentinelHub Output Bucket
 
-Install all python requirements
-
-```bash
-pip3 install -r requirements.txt
-```
-
-Run `build_catalog.py`, providing the s3 root at which images have been ingested. Be sure to point at a path
-which contains tiffs in a 4326 projection!
-
-```bash
-./build_catalog.py --imagery-root-s3 <s3-path>
-```
+Prepare the EU bucket following [these instructions](https://docs.sentinel-hub.com/api/latest/api/batch/#aws-s3-bucket-settings). One such bucket has already been created for those with the credentials to access it: `s3://noaafloodmapping-sentinelhub-batch-eu-central-1`
