@@ -16,7 +16,7 @@ from stac_df import pystac_catalog_to_dataframe
 # Must call before setting up logger
 progressbar.streams.wrap_stderr()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARN)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
