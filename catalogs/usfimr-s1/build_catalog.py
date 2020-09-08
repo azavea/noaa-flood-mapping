@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
-from datetime import datetime
-import json
 import argparse
+from datetime import datetime
 from itertools import groupby
+import json
+from urllib.parse import urlparse
 
+import boto3
 from pystac import (
     Asset,
     CatalogType,
@@ -15,8 +17,6 @@ from pystac import (
     SpatialExtent,
     TemporalExtent,
 )
-import boto3
-import urllib3
 import rasterio as rio
 from shapely.geometry import Polygon, mapping
 
@@ -26,16 +26,13 @@ if __name__ == "__main__":
     parser.add_argument("--imagery-root-s3", required=True)
     args = parser.parse_args()
 
-    parsed_s3_path = urllib3.util.parse_url(args.imagery_root_s3)
+    parsed_s3_path = urlparse(args.imagery_root_s3)
     bucket = parsed_s3_path.netloc
 
     s3 = boto3.resource("s3")
     bucket = s3.Bucket(bucket)
-    try:
-        prefix = parsed_s3_path.path[1:]
-        filtered_objects = bucket.objects.filter(Prefix=prefix)
-    except TypeError:
-        filtered_objects = bucket.objects.all()
+    prefix = parsed_s3_path.path.lstrip("/")
+    filtered_objects = bucket.objects.filter(Prefix=prefix)
 
     catalog_description = (
         "Sentinel-1 imagery corresponding to flood events catalogued within GLOFIMR"

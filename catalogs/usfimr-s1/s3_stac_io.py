@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
-
 import urllib3
+
 import boto3
 from pystac import STAC_IO
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 from datetime import date, time, datetime
@@ -48,6 +48,12 @@ def make_parser():
         required=True,
         type=str,
         help="OAuth secret for requesting an authorization token",
+    )
+    parser.add_argument(
+        "--sentinelhub-bucket",
+        required=True,
+        type=str,
+        help="The bucket that should contain the output of the SentinelHub Batch Ingests",
     )
     return parser
 
@@ -100,7 +106,7 @@ if __name__ == "__main__":
             )
 
     s3 = boto3.resource("s3")
-    bucket = s3.Bucket("noaafloodmapping-sentinelhub-batch-eu-central-1")
+    bucket = s3.Bucket(args.sentinelhub_bucket)
 
     for i, flood in enumerate(flood_with_results):
 
@@ -109,7 +115,6 @@ if __name__ == "__main__":
             Prefix="glofimr/{}/".format(flood.id)
         )
         already_loaded = False
-        logger.info("{}: {}".format(flood.id, list(filtered_bucket_contents)))
         for key in filtered_bucket_contents:
             already_loaded = True
             break
