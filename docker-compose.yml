@@ -5,6 +5,8 @@ services:
     image: noaa-flood-catalogs
     environment:
       - AWS_PROFILE=noaa-flood
+      - SENTINELHUB_OAUTH_ID
+      - SENTINELHUB_OAUTH_SECRET
     volumes:
       - ./catalogs:/opt/catalogs
       - $HOME/.aws:/root/.aws:ro
