@@ -1,18 +1,18 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
-from datetime import date, time, datetime
 import argparse
+from datetime import date, time, datetime
 import json
+import logging
+import sys
 
-
-import urllib3
-import boto3
 from area import area
+import boto3
 from pystac import Collection
 
 from s3_stac_io import register_s3_io
 from request_builders import (
-    get_sentinelhub_token,
+    get_sentinel_hub_session,
     search_sentinelhub_s1,
     create_batch_request,
     analyze_batch_request,
@@ -20,6 +20,9 @@ from request_builders import (
     check_batch_status,
 )
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
 def get_flood_temporal_bounds(flood):
@@ -56,14 +59,7 @@ if __name__ == "__main__":
     # Register methods for IO to/from S3
     register_s3_io()
 
-    # Set up urllib3 connection pool
-    http_pool = urllib3.connectionpool.connection_from_url(
-        "https://services.sentinel-hub.com"
-    )
-
-    # Get token for making further Sentinel-Hub requests
-    token = get_sentinelhub_token(args.oauth_id, args.oauth_secret, http_pool)
-    print("TOKEN", token)
+    session = get_sentinel_hub_session(args.oauth_id, args.oauth_secret)
 
     # Read STAC from S3
     usfimr_collection = Collection.from_file("s3://usfimr-data/collection.json")
@@ -77,32 +73,29 @@ if __name__ == "__main__":
 
         # temporal bounds
         date_min, date_max = get_flood_temporal_bounds(flood)
-        temporal_bounds_string = (
-            date_min.isoformat() + "Z/" + date_max.isoformat() + "Z"
-        )
-
         search_results = search_sentinelhub_s1(
-            temporal_bounds_string, flood_bounds, http_pool, token
+            date_min, date_max, flood_bounds, session
         )
-        search_results = json.loads(search_results.data.decode("utf-8"))
+        search_results = search_results.json()
 
         result_count = search_results["context"]["returned"]
         if result_count > 0:
             flood_with_results.append(flood)
-            print(
+            logger.info(
                 "{result_count} results for USFIMR ID={flood_id}".format(
                     result_count=result_count, flood_id=flood.id
                 )
             )
             # Estimate sq km of coverage
-            print(
-                "km2 of labelled region (estimated from convex hull of labels)",
-                area(flood.geometry) / 1000,
+            logger.debug(
+                "km2 of labelled region (estimated from convex hull of labels): {}".format(
+                    area(flood.geometry) / 1000,
+                )
             )
-            print("km2 of flooding", flood.properties["Flood_km2"])
+            logger.debug("km2 of flooding: {}".format(flood.properties["Flood_km2"]))
 
         else:
-            print(
+            logger.debug(
                 "No S1 results found for USFIMR ID={flood_id}".format(flood_id=flood.id)
             )
 
@@ -113,51 +106,48 @@ if __name__ == "__main__":
 
         # Check if data is already loaded
         filtered_bucket_contents = bucket.objects.filter(
-            Prefix="glofimr/{}".format(flood.id)
+            Prefix="glofimr/{}/".format(flood.id)
         )
         already_loaded = False
+        logger.info("{}: {}".format(flood.id, list(filtered_bucket_contents)))
         for key in filtered_bucket_contents:
             already_loaded = True
             break
 
         if already_loaded:
-            print("Flood {} already ingested, skipping".format(flood.id))
+            logger.info("Flood {} already ingested, skipping".format(flood.id))
         else:
-            print("Flood {} not ingested, ingesting".format(flood.id))
+            logger.info("Flood {} not ingested, ingesting".format(flood.id))
             # temporal bounds
             date_min, date_max = get_flood_temporal_bounds(flood)
-            temporal_bounds_string = (
-                date_min.isoformat() + "Z/" + date_max.isoformat() + "Z"
+            batch_ingest_path = "s3://{}/glofimr/{}/<tileName>/<outputId>.tiff".format(
+                bucket.name, flood.id
             )
-            batch_ingest_path = "s3://noaafloodmapping-sentinelhub-batch-eu-central-1/glofimr/{}/<requestId>/<tileName>/<outputId>.tiff".format(flood.id)
             batch_creation_request = create_batch_request(
-                flood, temporal_bounds_string, batch_ingest_path, http_pool, token
+                flood, date_min, date_max, batch_ingest_path, session
             )
-            # from IPython import embed; embed()
-            batch_creation_response = json.loads(
-                batch_creation_request.data.decode("utf-8")
-            )
+            batch_creation_response = batch_creation_request.json()
             batch_request_id = batch_creation_response["id"]
+            logger.info("Flood {} ingest ID: {}".format(flood.id, batch_request_id))
 
-            analyze_batch_request(batch_request_id, http_pool, token)
+            analyze_batch_request(batch_request_id, session)
 
-            initiate_batch_request(batch_request_id, http_pool, token)
+            initiate_batch_request(batch_request_id, session)
 
             for count in range(100):
-                status_response = check_batch_status(batch_request_id, http_pool, token)
-                status_response_data = json.loads(status_response.data.decode("utf-8"))
+                status_response = check_batch_status(batch_request_id, session)
+                status_response_data = status_response.json()
                 status = status_response_data["status"]
 
                 if status == "DONE":
-                    print(
+                    logger.info(
                         "Flood ingest for ID {} completed successfully.".format(
                             flood.id
                         )
                     )
-                    print("SUCCESSFUL REQUEST ID: {}".format(batch_request_id))
-                    print("Data ingested to {}".format(batch_ingest_path)
+                    logger.info("SUCCESSFUL REQUEST ID: {}".format(batch_request_id))
+                    logger.info("Data ingested to {}".format(batch_ingest_path))
                     break
                 elif status == "FAILED":
-                    print("Flood ingest for ID {} FAILED".format(flood.id))
-                    print(status_response_data)
-
+                    logger.error("Flood ingest for ID {} FAILED".format(flood.id))
+                    logger.debug(status_response_data)

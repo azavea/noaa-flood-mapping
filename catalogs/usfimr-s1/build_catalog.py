@@ -44,15 +44,14 @@ if __name__ == "__main__":
 
     catalog = Catalog("glofimr-sar", catalog_description, title=catalog_title)
 
-    # We know the IDs used here (they are derived from the incrementing ID from the GLOFIMR shapefile)
-    # TODO: make the IDs/these keys something more descriptive
+    # We know the IDs used here, they are derived from the incrementing ID from the GLOFIMR shapefile
+    # ftp://guest:guest@sdml-server.ua.edu/USFIMR/USFIMR_all.zip
     flood_data = {"1": [], "2": [], "3": [], "15": [], "16": []}
     for filtered_obj in filtered_objects:
         try:
             flood_data[filtered_obj.key.split("/")[0]].append(filtered_obj.Object())
         except KeyError:
             flood_data[filtered_obj.key.split("/")[1]].append(filtered_obj.Object())
-
 
     subcollections = []
     for flood_id, objects in flood_data.items():
