@@ -1,3 +1,4 @@
+import argparse
 from functools import partial
 import logging
 import os
@@ -11,7 +12,7 @@ import progressbar
 import pystac
 
 from coregister import coregister_raster
-from stac_df import pystac_catalog_to_dataframe
+from stac_utils.dataframes import pystac_catalog_to_dataframe
 
 # Must call before setting up logger
 progressbar.streams.wrap_stderr()
@@ -36,7 +37,7 @@ def append_s3_uris(row):
     return row
 
 
-def coregister_row(progress_bar, row):
+def coregister_and_publish_to_s3(progress_bar, row):
     with TemporaryDirectory() as tmp_dir:
         logger.info(
             "Generating coraster for {} using HAND {}".format(
@@ -50,7 +51,12 @@ def coregister_row(progress_bar, row):
         sar_url = urlparse(row["sar_uri"])
         hand_sar_path = "{}/HAND.tif".format(os.path.dirname(sar_url.path)).lstrip("/")
         s3_client = boto3.client("s3")
-        s3_client.upload_file(tmp_file, sar_url.netloc, hand_sar_path)
+        s3_client.upload_file(
+            tmp_file,
+            sar_url.netloc,
+            hand_sar_path,
+            ExtraArgs={"ContentType": "image/tiff"},
+        )
 
         output_uri = "{}://{}/{}".format(sar_url.scheme, sar_url.netloc, hand_sar_path)
         logger.info("\tSaved to {}".format(output_uri))
@@ -60,12 +66,27 @@ def coregister_row(progress_bar, row):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--s1-catalog",
+        required=True,
+        type=str,
+        help="Path to catalog generated with build_catalog.py",
+    )
+    parser.add_argument(
+        "--hand-catalog",
+        required=True,
+        type=str,
+        help="Path to HAND Dataset STAC Catalog",
+    )
+    args = parser.parse_args()
+
     # Load S1 chips catalog
-    sar_catalog = pystac.Catalog.from_file("./data/usfimr-sar-catalog/catalog.json")
+    sar_catalog = pystac.Catalog.from_file(args.s1_catalog)
     sar_df = pystac_catalog_to_dataframe(sar_catalog)
 
     # Load HAND catalog
-    hand_catalog = pystac.Collection.from_file("./data/hand-catalog/collection.json")
+    hand_catalog = pystac.Collection.from_file(args.hand_catalog)
     hand_df = pystac_catalog_to_dataframe(hand_catalog)
 
     sar_hand_df = gpd.sjoin(
@@ -78,7 +99,7 @@ def main():
     bar = progressbar.ProgressBar(
         min_value=0, initial_value=0, max_value=total_count
     ).start()
-    sar_hand_df_w_uris.apply(partial(coregister_row, bar), axis=1)
+    sar_hand_df_w_uris.apply(partial(coregister_and_publish_to_s3, bar), axis=1)
     bar.finish()
 
 
