@@ -1,3 +1,4 @@
+import affine
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.vrt import WarpedVRT
@@ -13,16 +14,15 @@ def coregister_raster(a_uri, b_uri, dest_file, resampling=Resampling.bilinear):
 
     """
     with rasterio.open(a_uri) as ds_a, rasterio.open(b_uri) as ds_b:
-        vrt = WarpedVRT(ds_a, crs=ds_b.crs, resampling=resampling)
-        window = rasterio.windows.from_bounds(
-            *ds_b.bounds, transform=vrt.transform
-        ).round_offsets()
-        data = vrt.read(
-            1,
-            out_shape=(1, ds_b.width, ds_b.height),
+        vrt = WarpedVRT(
+            ds_a,
+            crs=ds_b.crs,
+            height=ds_b.height,
+            width=ds_b.width,
             resampling=resampling,
-            window=window,
+            transform=ds_b.transform,
         )
+        data = vrt.read(1)
         with rasterio.open(
             dest_file,
             "w",
