@@ -1,5 +1,4 @@
 import argparse
-from functools import partial
 import logging
 import os
 import sys
@@ -8,16 +7,13 @@ from urllib.parse import urlparse
 
 import boto3
 import geopandas as gpd
-import progressbar
 import pystac
 
-from coregister import coregister_raster
+from coregister import coregister_raster, coregister_rasters
 from stac_utils.dataframes import pystac_catalog_to_dataframe
 
-# Must call before setting up logger
-progressbar.streams.wrap_stderr()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARN)
+logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
@@ -37,18 +33,21 @@ def append_s3_uris(row):
     return row
 
 
-def coregister_and_publish_to_s3(progress_bar, row):
+def coregister_and_publish_to_s3(row):
     with TemporaryDirectory() as tmp_dir:
         logger.info(
-            "Generating coraster for {} using HAND {}".format(
-                row["id_sar"], row["id_hand"]
-            )
+            "Generating coraster for {} using HAND {}".format(row.name, row["id_hand"])
         )
         tmp_file = os.path.join(tmp_dir, "HAND.tif")
 
-        coregister_raster(row["hand_uri"], row["sar_uri"], tmp_file)
+        hand_uris = row["hand_uri"]
+        sar_uri = row["sar_uri"][0]
+        if len(hand_uris) > 1:
+            coregister_rasters(hand_uris, sar_uri, tmp_file)
+        else:
+            coregister_raster(hand_uris[0], sar_uri, tmp_file)
 
-        sar_url = urlparse(row["sar_uri"])
+        sar_url = urlparse(sar_uri)
         hand_sar_path = "{}/HAND.tif".format(os.path.dirname(sar_url.path)).lstrip("/")
         s3_client = boto3.client("s3")
         s3_client.upload_file(
@@ -61,7 +60,6 @@ def coregister_and_publish_to_s3(progress_bar, row):
         output_uri = "{}://{}/{}".format(sar_url.scheme, sar_url.netloc, hand_sar_path)
         logger.info("\tSaved to {}".format(output_uri))
         row["hand_sar_uri"] = output_uri
-        progress_bar.update(progress_bar.value + 1)
     return row
 
 
@@ -92,15 +90,14 @@ def main():
     sar_hand_df = gpd.sjoin(
         sar_df, hand_df, op="intersects", how="inner", lsuffix="sar", rsuffix="hand"
     )
-    sar_hand_df_w_uris = sar_hand_df.apply(append_s3_uris, axis=1)
+    sar_hand_df = sar_hand_df.apply(append_s3_uris, axis=1)
+    chips_df = sar_hand_df.groupby("id_sar").agg(list)[
+        ["geometry", "id_hand", "hand_uri", "sar_uri"]
+    ]
 
     # Generate the hand corasters
-    total_count = len(sar_hand_df_w_uris.index)
-    bar = progressbar.ProgressBar(
-        min_value=0, initial_value=0, max_value=total_count
-    ).start()
-    sar_hand_df_w_uris.apply(partial(coregister_and_publish_to_s3, bar), axis=1)
-    bar.finish()
+    logger.info("\nGenerating {} corasters...\n".format(len(chips_df)))
+    chips_df.apply(coregister_and_publish_to_s3, axis=1)
 
 
 if __name__ == "__main__":
