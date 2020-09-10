@@ -2,7 +2,6 @@
 
 import argparse
 from datetime import date, time, datetime
-import json
 import logging
 import sys
 
@@ -10,7 +9,6 @@ from area import area
 import boto3
 from pystac import Collection
 
-from s3_stac_io import register_s3_io
 from request_builders import (
     get_sentinel_hub_session,
     search_sentinelhub_s1,
@@ -19,6 +17,7 @@ from request_builders import (
     initiate_batch_request,
     check_batch_status,
 )
+from stac_utils.s3_io import register_s3_io
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

@@ -22,8 +22,24 @@ from shapely.geometry import Polygon, mapping
 
 
 if __name__ == "__main__":
+    """ Constructs STAC Catalog from SentinelHub Batch processed S1 chips in an S3 bucket.
+
+    Will include all images tagged with `Content-Type: "image/tiff"`
+
+    This script expects an s3 path that ends with the form:
+        <flood_id>/.*/chip_id>/<image_name>.<ext>
+
+    For example, if you have a full S3 path to your files that looks like:
+        s3://mybucket/some/random/path/<flood_id>/<batch_request_id/<chip_id>/<filename>.<ext>
+    you would pass --imagery-root-s3 s3://mybucket/some/random/path
+
+    """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--imagery-root-s3", required=True)
+    parser.add_argument(
+        "--imagery-root-s3",
+        required=True,
+        help="Bucket+key path to a directory containing GLOFIMR flood ids",
+    )
     args = parser.parse_args()
 
     parsed_s3_path = urlparse(args.imagery_root_s3)
@@ -44,11 +60,11 @@ if __name__ == "__main__":
     # We know the IDs used here, they are derived from the incrementing ID from the GLOFIMR shapefile
     # ftp://guest:guest@sdml-server.ua.edu/USFIMR/USFIMR_all.zip
     flood_data = {"1": [], "2": [], "3": [], "15": [], "16": []}
+    flood_ids = set(flood_data.keys())
     for filtered_obj in filtered_objects:
-        try:
-            flood_data[filtered_obj.key.split("/")[0]].append(filtered_obj.Object())
-        except KeyError:
-            flood_data[filtered_obj.key.split("/")[1]].append(filtered_obj.Object())
+        flood_id, *_ = filtered_obj.key.split("/")
+        if flood_id in flood_ids:
+            flood_data[flood_id].append(filtered_obj.Object())
 
     subcollections = []
     for flood_id, objects in flood_data.items():
