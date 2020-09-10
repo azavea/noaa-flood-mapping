@@ -1,6 +1,7 @@
 Fiona==1.8.13
 awscli
 boto3==1.14.20
+ipdb
 ipython==7.18.1
 pystac==0.4.0
 rasterio==1.1.5
