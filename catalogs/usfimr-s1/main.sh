@@ -48,3 +48,6 @@ python coregister.py \
 # Re-generate catalog in order to include HAND tifs generated in coregister step
 rm -rf ./data/catalog
 python build_catalog.py --imagery-root-s3 s3://${OUT_BUCKET_4326}
+
+# Build mldata catalog for this dataset
+python build_mldata_catalog.py --sar-catalog ./data/catalog/catalog.json
