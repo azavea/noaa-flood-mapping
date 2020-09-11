@@ -77,17 +77,17 @@ if __name__ == "__main__":
             fid = feature["id"]
 
             binary_asset = Asset(
-                href="./{}-usfimr.wkb".format(fid),
+                href="{}-usfimr.wkb".format(fid),
                 description="well known binary representation",
                 media_type="application/wkb",
             )
             text_asset = Asset(
-                href="./{}-usfimr.wkt".format(fid),
+                href="{}-usfimr.wkt".format(fid),
                 description="well known text representation",
                 media_type="application/wkt",
             )
             json_asset = Asset(
-                href="./{}-usfimr.geojson".format(fid),
+                href="{}-usfimr.geojson".format(fid),
                 description="geojson representation",
                 media_type="application/geo+json",
             )
@@ -95,8 +95,11 @@ if __name__ == "__main__":
             item = Item(
                 fid, serializable_convex_hull, bbox_list, start_dt, deepcopy(props)
             )
+            text_asset.set_owner(item)
             item.add_asset(key="wkt", asset=text_asset)
+            binary_asset.set_owner(item)
             item.add_asset(key="wkb", asset=binary_asset)
+            json_asset.set_owner(item)
             item.add_asset(key="geojson", asset=json_asset)
             items.append(item)
 

@@ -1,14 +1,14 @@
-import urllib3
+from urllib.parse import urlparse
 
 import boto3
 from pystac import STAC_IO
 
 
 def s3_read(uri):
-    parsed = urllib3.util.parse_url(uri)
+    parsed = urlparse(uri)
     if parsed.scheme == "s3":
         bucket = parsed.netloc
-        key = parsed.path[1:]
+        key = parsed.path.lstrip("/")
         s3 = boto3.resource("s3")
         obj = s3.Object(bucket, key)
         return obj.get()["Body"].read().decode("utf-8")
@@ -17,10 +17,10 @@ def s3_read(uri):
 
 
 def s3_write(uri, txt):
-    parsed = urllib3.util.parse_url(uri)
+    parsed = urlparse(uri)
     if parsed.scheme == "s3":
         bucket = parsed.netloc
-        key = parsed.path[1:]
+        key = parsed.path.lstrip("/")
         s3 = boto3.resource("s3")
         s3.Object(bucket, key).put(Body=txt)
     else:
