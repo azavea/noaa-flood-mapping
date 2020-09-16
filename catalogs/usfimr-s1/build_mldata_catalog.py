@@ -7,12 +7,12 @@ from stac_utils.s3_io import register_s3_io
 from sklearn.model_selection import train_test_split
 
 
-def train_test_val_split(collection, test_size, val_size):
-    train, remain = train_test_split(collection, test_size=(val_size + test_size))
+def train_test_val_split(collection, test_size, val_size, random_state):
+    train, remain = train_test_split(collection, test_size=(val_size + test_size), random_state=random_state)
     new_test_size = np.around(test_size / (val_size + test_size), 2)
     new_val_size = 1.0 - new_test_size
 
-    val, test = train_test_split(remain, test_size=new_test_size)
+    val, test = train_test_split(remain, test_size=new_test_size, random_state=random_state)
     return train, test, val
 
 
@@ -69,7 +69,7 @@ def main():
 
     image_items, labels_collection = collect_items(sar_catalog, usfimr_collection)
 
-    training, testing, validation = train_test_val_split(image_items, 0.2, 0.2)
+    training, testing, validation = train_test_val_split(image_items, 0.2, 0.2, random_state=args.random_seed)
 
     train_collection = pystac.Collection(
         "train", "train", usfimr_collection.extent
@@ -93,7 +93,7 @@ def main():
     mldata_catalog.add_child(val_collection)
 
     mldata_catalog.normalize_and_save(
-        "./data/mldata-catalog", catalog_type=pystac.CatalogType.SELF_CONTAINED
+        "./data/mldata-catalog_seed{}".format(args.random_seed), catalog_type=pystac.CatalogType.SELF_CONTAINED
     )
 
 
