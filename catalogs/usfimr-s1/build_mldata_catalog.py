@@ -2,33 +2,30 @@ import argparse
 
 import pystac
 
+import numpy as np
 from stac_utils.s3_io import register_s3_io
+from sklearn.model_selection import train_test_split
 
 
-def add_set(flood_ids, set_type, mldata_catalog, sar_catalog, usfimr_collection):
-    """ Add test, training or validation collections containing flood_ids to mldata_catalog.
+def train_test_val_split(collection, test_size, val_size):
+    train, remain = train_test_split(collection, test_size=(val_size + test_size))
+    new_test_size = np.around(test_size / (val_size + test_size), 2)
+    new_val_size = 1.0 - new_test_size
 
-    TODO: Properly set the created collection extents. For now they're just set to
-          usfimr_collection.extent since we don't use the extent downstream.
+    val, test = train_test_split(remain, test_size=new_test_size)
+    return train, test, val
 
-    """
-    set_types = set(["test", "training", "validation"])
-    if set_type not in set_types:
-        raise ValueError("set_type must be one of {}".format(set_types))
 
-    imagery_collection_id = "{}_imagery".format(set_type)
-    labels_collection_id = "{}_labels".format(set_type)
-    if set_type == "test":
-        imagery_collection_id += "_0"
-        labels_collection_id += "_0"
-    imagery_collection = pystac.Collection(
-        imagery_collection_id, imagery_collection_id, usfimr_collection.extent
+def collect_items(sar_catalog, usfimr_collection):
+    images = []
+    labels_collection = pystac.Collection(
+        "labels", "labels", usfimr_collection.extent
     )
     labels_collection = pystac.Collection(
-        labels_collection_id, labels_collection_id, usfimr_collection.extent
+        "usfimr_sar_labels", "usfimr_sar_labels", usfimr_collection.extent
     )
 
-    for flood_id in flood_ids:
+    for flood_id in ["1", "2", "3", "15", "16"]:
         usfimr_item = usfimr_collection.get_item(flood_id)
         usfimr_geojson_asset = usfimr_item.assets["geojson"]
         usfimr_geojson_asset.set_owner(usfimr_item)
@@ -47,10 +44,9 @@ def add_set(flood_ids, set_type, mldata_catalog, sar_catalog, usfimr_collection)
                     link_type=pystac.LinkType.RELATIVE,
                 ).set_owner(sar_item_clone)
             )
-            imagery_collection.add_item(sar_item_clone)
+            images.append(sar_item_clone)
 
-    mldata_catalog.add_child(imagery_collection)
-    mldata_catalog.add_child(labels_collection)
+    return images, labels_collection
 
 
 def main():
@@ -61,25 +57,40 @@ def main():
         "--usfimr-collection", default="s3://usfimr-data/collection.json"
     )
     parser.add_argument("--sar-catalog", required=True, type=str)
+    parser.add_argument("--random-seed", default=42, type=int)
     args = parser.parse_args()
 
     usfimr_collection = pystac.Collection.from_file(args.usfimr_collection)
     sar_catalog = pystac.Catalog.from_file(args.sar_catalog)
 
-    # TODO: Do better than to arbitrarily choose these
-    test_set = set(["1"])
-    training_set = set(["2", "3"])
-    validation_set = set(["15", "16"])
-
     mldata_catalog = pystac.Catalog(
         "usfimr-s1-mldata", "MLData STAC Catalog for usfimr-s1 dataset"
     )
 
-    add_set(test_set, "test", mldata_catalog, sar_catalog, usfimr_collection)
-    add_set(training_set, "training", mldata_catalog, sar_catalog, usfimr_collection)
-    add_set(
-        validation_set, "validation", mldata_catalog, sar_catalog, usfimr_collection
+    image_items, labels_collection = collect_items(sar_catalog, usfimr_collection)
+
+    training, testing, validation = train_test_val_split(image_items, 0.2, 0.2)
+
+    train_collection = pystac.Collection(
+        "train", "train", usfimr_collection.extent
     )
+    for t in training:
+        train_collection.add_item(t)
+    test_collection = pystac.Collection(
+        "test", "test", usfimr_collection.extent
+    )
+    for t in testing:
+        test_collection.add_item(t)
+    val_collection = pystac.Collection(
+        "validation", "validation", usfimr_collection.extent
+    )
+    for v in validation:
+        val_collection.add_item(v)
+
+    mldata_catalog.add_child(labels_collection)
+    mldata_catalog.add_child(train_collection)
+    mldata_catalog.add_child(test_collection)
+    mldata_catalog.add_child(val_collection)
 
     mldata_catalog.normalize_and_save(
         "./data/mldata-catalog", catalog_type=pystac.CatalogType.SELF_CONTAINED
