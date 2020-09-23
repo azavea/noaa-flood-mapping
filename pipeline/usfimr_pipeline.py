@@ -6,15 +6,11 @@ from typing import Generator
 
 import numpy as np
 
-from pystac import STAC_IO, Catalog, Collection, Item, MediaType
+from pystac import STAC_IO, Catalog, Collection, Item
 from rastervision.core.backend import *
 from rastervision.core.data import *
-from rastervision.core.data import (ClassConfig, DatasetConfig,
-                                    GeoJSONVectorSourceConfig,
-                                    RasterioSourceConfig,
-                                    RasterizedSourceConfig, RasterizerConfig,
-                                    SceneConfig,
-                                    SemanticSegmentationLabelSourceConfig)
+from rastervision.core.data.raster_source.multi_raster_source_config import (
+    MultiRasterSourceConfig, SubRasterSourceConfig)
 from rastervision.core.data.raster_transformer.raster_transformer import \
     RasterTransformer
 from rastervision.core.data.raster_transformer.raster_transformer_config import \
@@ -101,18 +97,13 @@ def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
         label_asset = label_item.assets["labels"]
         label_uri = label_asset.href
 
-        # semantic segmentation label configuration; convert to tif as necesary
-        if label_asset.media_type == MediaType.GEOTIFF:
-            raster_label_source = RasterioSourceConfig(uris=[label_asset.href
-                                                             ], )
-        else:
-            vector_label_source = GeoJSONVectorSourceConfig(
-                uri=label_uri, default_class_id=0, ignore_crs_field=True)
-            raster_label_source = RasterizedSourceConfig(
-                vector_source=vector_label_source,
-                rasterizer_config=RasterizerConfig(background_class_id=0),
-            )
-
+        vector_label_source = GeoJSONVectorSourceConfig(uri=label_uri,
+                                                        default_class_id=0,
+                                                        ignore_crs_field=True)
+        raster_label_source = RasterizedSourceConfig(
+            vector_source=vector_label_source,
+            rasterizer_config=RasterizerConfig(background_class_id=0),
+        )
         label_source = SemanticSegmentationLabelSourceConfig(
             raster_source=raster_label_source)
 
@@ -120,6 +111,7 @@ def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
             SceneConfig(id=item.id,
                         raster_source=image_source,
                         label_source=label_source))
+
     return scene_configs
 
 
@@ -139,8 +131,7 @@ def build_dataset_from_catalog(catalog: Catalog, channel_order: [int],
                                class_config: ClassConfig) -> DatasetConfig:
 
     # Read taining scenes from STAC
-    train_collection = catalog.get_child(id="train")  # ???
-    # train_collection = catalog.get_child(id="training_imagery")
+    train_collection = catalog.get_child(id="train")
     train_scenes = make_scenes(train_collection, channel_order)
 
     # Read validation scenes from STAC
@@ -148,28 +139,24 @@ def build_dataset_from_catalog(catalog: Catalog, channel_order: [int],
     validation_scenes = make_scenes(validation_collection, channel_order)
 
     # Read testing scenes from STAC
-    test_collection_0 = catalog.get_child(id="test")
-    test_scenes_0 = make_scenes(test_collection_0, channel_order)
-    # test_collection_1 = catalog.get_child(id="test")
-    # test_scenes_1 = make_scenes(test_collection_1, channel_order)
+    test_collection = catalog.get_child(id="test")
+    test_scenes = make_scenes(test_collection, channel_order)
 
     return DatasetConfig(
         class_config=class_config,
         train_scenes=train_scenes,
-        test_scenes=test_scenes_0,
+        test_scenes=test_scenes,
         validation_scenes=validation_scenes,
         img_channels=3,
     )
 
 
 def get_config(runner, root_uri, catalog_root, hours='4'):
-    import pdb ; pdb.set_trace()
-
     # Read STAC catalog
     catalog: Catalog = Catalog.from_file(catalog_root)
 
     # TODO: pull desired channels from root collection properties
-    channel_ordering: [int] = [0, 1, 1]
+    channel_ordering: [int] = [0, 1, 2]
 
     # TODO: pull ClassConfig info from root collection properties
     class_config: ClassConfig = ClassConfig(names=["not water", "water"],
