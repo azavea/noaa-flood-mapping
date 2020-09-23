@@ -21,17 +21,6 @@ from rastervision.pytorch_backend import *
 from rastervision.pytorch_learner import *
 
 
-@register_config('float32_transformer')
-class Float32RasterTransformerConfig(RasterTransformerConfig):
-    def build(self):
-        return Float32RasterTransformer()
-
-
-class Float32RasterTransformer(RasterTransformer):
-    def transform(self, chip, channel_ordfer):
-        return chip.astype(dtype=np.float32)
-
-
 def noop_write_method(uri, txt):
     pass
 
@@ -67,16 +56,20 @@ def image_sources(item: Item, channel_order: [int]):
 
     vh_source = RasterioSourceConfig(uris=vh_uris, channel_order=[0])
     vv_source = RasterioSourceConfig(uris=vv_uris, channel_order=[0])
-    hand_source = RasterioSourceConfig(
-        uris=hand_uris,
-        transformers=[Float32RasterTransformerConfig()],
-        channel_order=[0])
+    hand_source = RasterioSourceConfig(uris=hand_uris, channel_order=[0])
 
-    raster_source = MultiRasterSourceConfig(raster_sources=[
-        SubRasterSourceConfig(raster_source=vh_source, target_channels=[0]),
-        SubRasterSourceConfig(raster_source=vv_source, target_channels=[1]),
-        SubRasterSourceConfig(raster_source=hand_source, target_channels=[2]),
-    ])
+    raster_source = MultiRasterSourceConfig(
+        raster_sources=[
+            SubRasterSourceConfig(raster_source=vh_source,
+                                  target_channels=[0]),
+            SubRasterSourceConfig(raster_source=vv_source,
+                                  target_channels=[1]),
+            SubRasterSourceConfig(raster_source=hand_source,
+                                  target_channels=[2]),
+        ],
+        force_same_dtype=True,
+        allow_different_extents=True,
+    )
 
     return raster_source
 
@@ -151,7 +144,7 @@ def build_dataset_from_catalog(catalog: Catalog, channel_order: [int],
     )
 
 
-def get_config(runner, root_uri, catalog_root, hours='4'):
+def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
     # Read STAC catalog
     catalog: Catalog = Catalog.from_file(catalog_root)
 
@@ -166,18 +159,15 @@ def get_config(runner, root_uri, catalog_root, hours='4'):
                                          class_config)
 
     chip_sz = 512
+    epochs = int(epochs)
+    batch_sz = int(batch_sz)
+
     backend = PyTorchSemanticSegmentationConfig(
         model=SemanticSegmentationModelConfig(backbone=Backbone.resnet50),
-        solver=SolverConfig(
-            lr=1e-4,
-            num_epochs=
-            1,  #(int(hours) * 4 * 60 * 60) // len(dataset.train_scenes),
-            batch_sz=8),
+        solver=SolverConfig(lr=1e-4, num_epochs=epochs, batch_sz=batch_sz),
     )
     chip_options = SemanticSegmentationChipOptions(
-        window_method=SemanticSegmentationWindowMethod.sliding,
-        chips_per_scene=1,
-        stride=chip_sz)
+        window_method=SemanticSegmentationWindowMethod.sliding, stride=chip_sz)
 
     return SemanticSegmentationConfig(
         root_uri=root_uri,
