@@ -8,7 +8,6 @@ import boto3
 from pystac import (
     Asset,
     CatalogType,
-    Catalog,
     Collection,
     Extent,
     Item,
@@ -19,23 +18,15 @@ from shapely.geometry import Polygon, mapping
 
 
 if __name__ == "__main__":
-    """Constructs STAC Catalog from SentinelHub Batch processed S1 chips in an S3 bucket.
+    """Constructs STAC Catalog for surface water observed on a monthly basis around the Mississippi river
 
-    Will include all images tagged with `Content-Type: "image/tiff"`
-
-    This script expects an s3 path that ends with the form:
-        <flood_id>/.*/chip_id>/<image_name>.<ext>
-
-    For example, if you have a full S3 path to your files that looks like:
-        s3://mybucket/some/random/path/<flood_id>/<batch_request_id/<chip_id>/<filename>.<ext>
-    you would pass --imagery-root-s3 s3://mybucket/some/random/path
-
+    Will include all images with the extension `tif`
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--jrc-monthly-root-s3",
         required=True,
-        help="Bucket+key path to a directory containing GLOFIMR flood ids",
+        help="Bucket+key path to a directory containing JRC surface water labels",
     )
     args = parser.parse_args()
 
