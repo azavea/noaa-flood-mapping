@@ -88,7 +88,7 @@ def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
     # iterate through links, building a scene config per link
     for label_item in label_items:
         label_asset = label_item.assets["labels"]
-        label_uri = label_asset.href
+        label_uri = label_asset.href.replace('s3://', '/vsis3/')
 
         vector_label_source = GeoJSONVectorSourceConfig(uri=label_uri,
                                                         default_class_id=0,
