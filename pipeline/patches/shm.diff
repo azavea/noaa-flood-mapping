@@ -1,0 +1,25 @@
+diff --git a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_learner_backend_config.py b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_learner_backend_config.py
+index d45b1b3c..6919581e 100644
+--- a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_learner_backend_config.py
++++ b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_learner_backend_config.py
+@@ -43,6 +43,8 @@ class PyTorchLearnerBackendConfig(BackendConfig):
+          'pytorch_learner.learner_config.LearnerConfig.test_mode.'))
+     plot_options: Optional[PlotOptions] = Field(
+         PlotOptions(), description='Options to control plotting.')
++    num_workers: int = Field(
++        4, description='The number of workers to use in PyTorch to read data.')
+ 
+     # validators
+     _base_tf = validator(
+diff --git a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_semantic_segmentation_config.py b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_semantic_segmentation_config.py
+index 05c22738..bd6a4e21 100644
+--- a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_semantic_segmentation_config.py
++++ b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_semantic_segmentation_config.py
+@@ -21,6 +21,7 @@ class PyTorchSemanticSegmentationConfig(PyTorchLearnerBackendConfig):
+             img_channels=pipeline.dataset.img_channels,
+             img_format=pipeline.img_format,
+             label_format=pipeline.label_format,
++            num_workers=self.num_workers,
+             augmentors=self.augmentors,
+             base_transform=self.base_transform,
+             aug_transform=self.aug_transform,

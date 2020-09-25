@@ -153,7 +153,7 @@ def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
 
     # TODO: pull ClassConfig info from root collection properties
     class_config: ClassConfig = ClassConfig(names=["not water", "water"],
-                                            colors=["white", "blue"])
+                                            colors=["brown", "blue"])
 
     dataset = build_dataset_from_catalog(catalog, channel_ordering,
                                          class_config)
@@ -165,9 +165,11 @@ def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
     backend = PyTorchSemanticSegmentationConfig(
         model=SemanticSegmentationModelConfig(backbone=Backbone.resnet50),
         solver=SolverConfig(lr=1e-4, num_epochs=epochs, batch_sz=batch_sz),
+        num_workers=0,
     )
     chip_options = SemanticSegmentationChipOptions(
-        window_method=SemanticSegmentationWindowMethod.sliding, stride=chip_sz // 2)
+        window_method=SemanticSegmentationWindowMethod.sliding,
+        stride=chip_sz // 2)
 
     return SemanticSegmentationConfig(
         root_uri=root_uri,
@@ -177,4 +179,5 @@ def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
         predict_chip_sz=chip_sz,
         chip_options=chip_options,
         img_format='npy',
+        label_format='npy',
     )
