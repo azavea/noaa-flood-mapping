@@ -6,8 +6,8 @@ resource "aws_security_group" "alb" {
   vpc_id = module.vpc.id
 
   tags = {
-    Name        = "sgFranklinLoadBalancer",
-    Project     = var.project
+    Name    = "sgFranklinLoadBalancer",
+    Project = var.project
   }
 }
 
@@ -16,8 +16,8 @@ resource "aws_security_group" "franklin" {
   vpc_id = module.vpc.id
 
   tags = {
-    Name        = "sgFranklinEcsService",
-    Project     = var.project
+    Name    = "sgFranklinEcsService",
+    Project = var.project
   }
 }
 
@@ -32,8 +32,8 @@ resource "aws_lb" "franklin" {
   enable_http2 = true
 
   tags = {
-    Name        = "albFranklin"
-    Project     = var.project
+    Name    = "albFranklin"
+    Project = var.project
   }
 }
 
@@ -57,8 +57,8 @@ resource "aws_lb_target_group" "franklin" {
   target_type = "ip"
 
   tags = {
-    Name        = "tgFranklin"
-    Project     = var.project
+    Name    = "tgFranklin"
+    Project = var.project
   }
 }
 
@@ -116,12 +116,12 @@ resource "aws_ecs_task_definition" "franklin" {
     postgres_name     = "franklin"
     api_host          = aws_route53_record.franklin.name
 
-    aws_region  = var.aws_region
+    aws_region = var.aws_region
   })
 
   tags = {
-    Name        = "Franklin",
-    Project     = var.project
+    Name    = "Franklin",
+    Project = var.project
   }
 }
 
@@ -143,12 +143,12 @@ resource "aws_ecs_task_definition" "franklin_migrations" {
     postgres_host     = aws_route53_record.database.fqdn
     postgres_name     = "franklin"
 
-    aws_region  = var.aws_region
+    aws_region = var.aws_region
   })
 
   tags = {
-    Name        = "FranklinMigrations"
-    Project     = var.project
+    Name    = "FranklinMigrations"
+    Project = var.project
   }
 }
 

@@ -3,7 +3,7 @@ resource "aws_s3_bucket" "data" {
   acl    = "private"
 
   tags = {
-    Name        = "noaafloodmap-data-${var.aws_region}"
-    Project     = var.project
+    Name    = "noaafloodmap-data-${var.aws_region}"
+    Project = var.project
   }
 }
