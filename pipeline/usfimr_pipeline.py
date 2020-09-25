@@ -167,7 +167,7 @@ def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
         solver=SolverConfig(lr=1e-4, num_epochs=epochs, batch_sz=batch_sz),
     )
     chip_options = SemanticSegmentationChipOptions(
-        window_method=SemanticSegmentationWindowMethod.sliding, stride=chip_sz)
+        window_method=SemanticSegmentationWindowMethod.sliding, stride=chip_sz // 2)
 
     return SemanticSegmentationConfig(
         root_uri=root_uri,
@@ -176,4 +176,5 @@ def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
         train_chip_sz=chip_sz,
         predict_chip_sz=chip_sz,
         chip_options=chip_options,
+        img_format='npy',
     )

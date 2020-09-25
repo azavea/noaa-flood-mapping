@@ -153,4 +153,5 @@ def get_config(runner, root_uri, catalog_root, hours):
         train_chip_sz=chip_sz,
         predict_chip_sz=chip_sz,
         chip_options=chip_options,
+        img_format='npy',
     )
