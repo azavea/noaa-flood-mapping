@@ -91,7 +91,7 @@ def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
         label_uri = label_asset.href.replace('s3://', '/vsis3/')
 
         vector_label_source = GeoJSONVectorSourceConfig(uri=label_uri,
-                                                        default_class_id=0,
+                                                        default_class_id=1,
                                                         ignore_crs_field=True)
         raster_label_source = RasterizedSourceConfig(
             vector_source=vector_label_source,
@@ -181,5 +181,5 @@ def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
         predict_chip_sz=chip_sz,
         chip_options=chip_options,
         img_format='npy',
-        label_format='npy',
+        label_format='png',
     )
