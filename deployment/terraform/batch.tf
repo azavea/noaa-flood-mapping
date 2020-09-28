@@ -177,3 +177,17 @@ resource "aws_batch_job_definition" "s2_catalog_creation" {
 
   container_properties = templatefile("job-definitions/sentinel-2-catalog-creation.json.tmpl", {})
 }
+
+resource "aws_batch_job_definition" "franklin_import_items" {
+  name = "importItemsFranklin"
+  type = "container"
+
+  container_properties = templatefile("job-definitions/franklin-import.json.tmpl", {
+    postgres_user     = var.rds_database_username
+    postgres_password = var.rds_database_password
+    postgres_host     = aws_route53_record.database.fqdn
+    postgres_name     = "franklin"
+    api_host          = aws_route53_record.franklin.name
+  })
+}
+

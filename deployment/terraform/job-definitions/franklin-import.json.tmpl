@@ -1,0 +1,40 @@
+{
+    "image": "quay.io/azavea/franklin:5df623a",
+    "vcpus": 2,
+    "memory": 2048,
+    "command": [
+        "import-items",
+        "--db-user",
+        "${postgres_user}",
+        "--db-password",
+        "${postgres_password}",
+        "--db-host",
+        "${postgres_host}",
+        "--db-port",
+        "5432",
+        "--db-name",
+        "${postgres_name}",
+        "--file",
+        "Ref::s3ItemsFile",
+        "Ref::collection"
+    ],
+    "volumes": [
+        {
+            "host": {
+                "sourcePath": "/media/ephemeral0"
+            },
+            "name": "ephemeral0"
+        }
+    ],
+    "environment": [],
+    "mountPoints": [
+        {
+            "containerPath": "/tmp",
+            "readOnly": false,
+            "sourceVolume": "ephemeral0"
+        }
+    ],
+    "privileged": false,
+    "ulimits": [],
+    "resourceRequirements": []
+}
