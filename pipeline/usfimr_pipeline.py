@@ -165,6 +165,8 @@ def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
     backend = PyTorchSemanticSegmentationConfig(
         model=SemanticSegmentationModelConfig(backbone=Backbone.resnet50),
         solver=SolverConfig(lr=1e-4, num_epochs=epochs, batch_sz=batch_sz),
+        log_tensorboard=False,
+        run_tensorboard=False,
         num_workers=0,
     )
     chip_options = SemanticSegmentationChipOptions(
