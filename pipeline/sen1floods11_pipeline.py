@@ -57,18 +57,8 @@ def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
         label_uri = label_asset.href
 
         # semantic segmentation label configuration; convert to tif as necesary
-        if label_asset.media_type == MediaType.GEOTIFF:
-            raster_label_source = RasterioSourceConfig(
-                uris=[label_asset.href],)
-        else:
-            vector_label_source = GeoJSONVectorSourceConfig(
-                uri=label_uri, default_class_id=0, ignore_crs_field=True
-            )
-            raster_label_source = RasterizedSourceConfig(
-                vector_source=vector_source,
-                rasterizer_config=RasterizerConfig(background_class_id=1),
-            )
-
+        raster_label_source = RasterioSourceConfig(
+            uris=[label_asset.href],)
         label_source = SemanticSegmentationLabelSourceConfig(
             raster_source=raster_label_source
         )
