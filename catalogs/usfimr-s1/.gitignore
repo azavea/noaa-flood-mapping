@@ -1,2 +1,9 @@
+# Data dir
 data/*
 !data/.gitkeep
+
+# Nextflow
+work
+.nextflow
+.nextflow.log.*
+
