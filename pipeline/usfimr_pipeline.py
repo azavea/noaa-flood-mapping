@@ -11,10 +11,10 @@ from rastervision.core.backend import *
 from rastervision.core.data import *
 from rastervision.core.data.raster_source.multi_raster_source_config import (
     MultiRasterSourceConfig, SubRasterSourceConfig)
-from rastervision.core.data.raster_transformer.raster_transformer import \
-    RasterTransformer
-from rastervision.core.data.raster_transformer.raster_transformer_config import \
-    RasterTransformerConfig
+from rastervision.core.data.raster_transformer.nan_transformer import \
+    NanTransformer
+from rastervision.core.data.raster_transformer.nan_transformer_config import \
+    NanTransformerConfig
 from rastervision.core.rv_pipeline import *
 from rastervision.gdal_vsi.vsi_file_system import VsiFileSystem
 from rastervision.pytorch_backend import *
@@ -54,9 +54,15 @@ def image_sources(item: Item, channel_order: [int]):
     hand_keys.sort()
     hand_uris = [item.assets[key].href for key in hand_keys]
 
-    vh_source = RasterioSourceConfig(uris=vh_uris, channel_order=[0])
-    vv_source = RasterioSourceConfig(uris=vv_uris, channel_order=[0])
-    hand_source = RasterioSourceConfig(uris=hand_uris, channel_order=[0])
+    vh_source = RasterioSourceConfig(uris=vh_uris,
+                                     transformers=[NanTransformerConfig()],
+                                     channel_order=[0])
+    vv_source = RasterioSourceConfig(uris=vv_uris,
+                                     transformers=[NanTransformerConfig()],
+                                     channel_order=[0])
+    hand_source = RasterioSourceConfig(uris=hand_uris,
+                                       transformers=[NanTransformerConfig()],
+                                       channel_order=[0])
 
     raster_source = MultiRasterSourceConfig(
         raster_sources=[

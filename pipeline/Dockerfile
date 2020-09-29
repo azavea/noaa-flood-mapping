@@ -7,6 +7,7 @@ COPY usfimr_pipeline.py /workdir/
 COPY default /root/.rastervision/
 
 COPY patches/shm.diff /tmp/
-RUN cd /opt/src && patch -p1 < /tmp/shm.diff
+COPY patches/nan.diff /tmp/
+RUN cd /opt/src && patch -p1 < /tmp/shm.diff && patch -p1 < /tmp/nan.diff
 
 CMD ["bash"]

@@ -1,4 +1,4 @@
-# Training a Torch Model Locally
+# Training a PyTorch Model Locally
 
 Build the docker container, which upgrades pystac to 0.5.2 for compatibility with the catalogs generated in [catalogs](../catalogs).
 
