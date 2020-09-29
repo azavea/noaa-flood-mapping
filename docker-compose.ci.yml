@@ -1,5 +1,8 @@
 version: "2.4"
 services:
+  catalogs:
+    image: "noaa-flood-catalogs:${GIT_COMMIT:-latest}"
+
   terraform:
     image: quay.io/azavea/terraform:0.12.29
     volumes:
