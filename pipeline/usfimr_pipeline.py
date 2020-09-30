@@ -54,15 +54,27 @@ def image_sources(item: Item, channel_order: [int]):
     hand_keys.sort()
     hand_uris = [item.assets[key].href for key in hand_keys]
 
-    vh_source = RasterioSourceConfig(uris=vh_uris,
-                                     transformers=[NanTransformerConfig()],
-                                     channel_order=[0])
-    vv_source = RasterioSourceConfig(uris=vv_uris,
-                                     transformers=[NanTransformerConfig()],
-                                     channel_order=[0])
-    hand_source = RasterioSourceConfig(uris=hand_uris,
-                                       transformers=[NanTransformerConfig()],
-                                       channel_order=[0])
+    vh_source = RasterioSourceConfig(
+        uris=vh_uris,
+        transformers=[
+            NanTransformerConfig(),
+            CastTransformerConfig(to_dtype='np.float16')
+        ],
+        channel_order=[0])
+    vv_source = RasterioSourceConfig(
+        uris=vv_uris,
+        transformers=[
+            NanTransformerConfig(),
+            CastTransformerConfig(to_dtype='np.float16')
+        ],
+        channel_order=[0])
+    hand_source = RasterioSourceConfig(
+        uris=hand_uris,
+        transformers=[
+            NanTransformerConfig(),
+            CastTransformerConfig(to_dtype='np.float16')
+        ],
+        channel_order=[0])
 
     raster_source = MultiRasterSourceConfig(
         raster_sources=[
@@ -170,7 +182,10 @@ def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
 
     backend = PyTorchSemanticSegmentationConfig(
         model=SemanticSegmentationModelConfig(backbone=Backbone.resnet50),
-        solver=SolverConfig(lr=1e-4, num_epochs=epochs, batch_sz=batch_sz),
+        solver=SolverConfig(lr=1e-4,
+                            num_epochs=epochs,
+                            batch_sz=batch_sz,
+                            ignore_last_class=True),
         log_tensorboard=False,
         run_tensorboard=False,
         num_workers=0,

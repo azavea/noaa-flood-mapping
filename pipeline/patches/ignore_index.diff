@@ -1,0 +1,99 @@
+diff --git a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_object_detection_config.py b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_object_detection_config.py
+index 2aaed312..7cb5c49e 100644
+--- a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_object_detection_config.py
++++ b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_object_detection_config.py
+@@ -48,6 +48,9 @@ class PyTorchObjectDetectionConfig(PyTorchLearnerBackendConfig):
+ 
+     @validator('solver')
+     def validate_solver_config(cls, v):
++        if v.ignore_last_class:
++            raise ConfigError(
++                'ignore_last_class is not supported for Object Detection.')
+         if v.class_loss_weights is not None:
+             raise ConfigError(
+                 'class_loss_weights is currently not supported for '
+diff --git a/rastervision_pytorch_learner/rastervision/pytorch_learner/classification_learner_config.py b/rastervision_pytorch_learner/rastervision/pytorch_learner/classification_learner_config.py
+index 41574763..6a9f87f2 100644
+--- a/rastervision_pytorch_learner/rastervision/pytorch_learner/classification_learner_config.py
++++ b/rastervision_pytorch_learner/rastervision/pytorch_learner/classification_learner_config.py
+@@ -41,6 +41,12 @@ class ClassificationLearnerConfig(LearnerConfig):
+     def validate_config(self):
+         super().validate_config()
+         self.validate_class_loss_weights()
++        self.validate_ignore_last_class()
++
++    def validate_ignore_last_class(self):
++        if self.solver.ignore_last_class is not None:
++            raise ConfigError(
++                'ignore_last_class is not supported for Chip Classification.')
+ 
+     def validate_class_loss_weights(self):
+         if self.solver.class_loss_weights is None:
+diff --git a/rastervision_pytorch_learner/rastervision/pytorch_learner/learner_config.py b/rastervision_pytorch_learner/rastervision/pytorch_learner/learner_config.py
+index 28de1dcb..62f6461c 100644
+--- a/rastervision_pytorch_learner/rastervision/pytorch_learner/learner_config.py
++++ b/rastervision_pytorch_learner/rastervision/pytorch_learner/learner_config.py
+@@ -195,6 +195,9 @@ class SolverConfig(Config):
+         [], description=('List of epoch indices at which to divide LR by 10.'))
+     class_loss_weights: Optional[Union[list, tuple]] = Field(
+         None, description=('Class weights for weighted loss.'))
++    ignore_last_class: bool = Field(
++        False,
++        description=('Whether to ignore the last class during training.'))
+     external_loss_def: Optional[ExternalModuleConfig] = Field(
+         None,
+         description='If specified, the loss will be built from the definition '
+@@ -206,6 +209,11 @@ class SolverConfig(Config):
+     def validate_config(self):
+         has_weights = self.class_loss_weights is not None
+         has_external_loss_def = self.external_loss_def is not None
++
++        if self.ignore_last_class and has_external_loss_def:
++            raise ConfigError(
++                'ignore_last_class is not supported with external_loss_def.')
++
+         if has_weights and has_external_loss_def:
+             raise ConfigError(
+                 'class_loss_weights is not supported with external_loss_def.')
+diff --git a/rastervision_pytorch_learner/rastervision/pytorch_learner/semantic_segmentation_learner.py b/rastervision_pytorch_learner/rastervision/pytorch_learner/semantic_segmentation_learner.py
+index f14e7627..75963ee1 100644
+--- a/rastervision_pytorch_learner/rastervision/pytorch_learner/semantic_segmentation_learner.py
++++ b/rastervision_pytorch_learner/rastervision/pytorch_learner/semantic_segmentation_learner.py
+@@ -96,10 +96,13 @@ class SemanticSegmentationLearner(Learner):
+     def build_model(self) -> nn.Module:
+         # TODO support FCN option
+         pretrained = self.cfg.model.pretrained
++        out_classes = len(self.cfg.data.class_names)
++        if self.cfg.solver.ignore_last_class:
++            out_classes -= 1
+         model = models.segmentation.segmentation._segm_resnet(
+             'deeplabv3',
+             self.cfg.model.get_backbone_str(),
+-            len(self.cfg.data.class_names),
++            out_classes,
+             False,
+             pretrained_backbone=pretrained)
+ 
+@@ -148,12 +151,19 @@ class SemanticSegmentationLearner(Learner):
+         return model
+ 
+     def build_loss(self):
++        args = {}
++
+         loss_weights = self.cfg.solver.class_loss_weights
+         if loss_weights is not None:
+             loss_weights = torch.tensor(loss_weights, device=self.device)
+-            loss = nn.CrossEntropyLoss(weight=loss_weights)
+-        else:
+-            loss = nn.CrossEntropyLoss()
++            args.update({'weight': loss_weights})
++
++        if self.cfg.solver.ignore_last_class:
++            num_classes = len(self.cfg.data.class_names)
++            args.update({'ignore_index': num_classes - 1})
++
++        loss = nn.CrossEntropyLoss(**args)
++
+         return loss
+ 
+     def _get_datasets(self, uri: Union[str, List[str]]):
