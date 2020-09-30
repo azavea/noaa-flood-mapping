@@ -117,7 +117,6 @@ if __name__ == "__main__":
                 bbox, dt_min, dt_max, batch_ingest_path, session
             )
             batch_creation_response = batch_creation_request.json()
-            print("Batch response", batch_creation_response)
             batch_request_id = batch_creation_response["id"]
             logger.info("Month: {}; ingest ID: {}".format(month_name, batch_request_id))
 

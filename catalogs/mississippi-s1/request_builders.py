@@ -27,7 +27,6 @@ def get_sentinel_hub_session(oauth_id, oauth_secret):
             "Logged in. Sentinel-Hub session valid until {}".format(one_hour_later)
         )
         access_token = response.json()["access_token"]
-        print('token', access_token)
         session = requests.Session()
         session.headers.update(
             {
@@ -129,7 +128,6 @@ def create_batch_request(bbox, min_date, max_date, ingest_path, session):
         },
     }
     encoded = json.dumps(parameters).encode("utf-8")
-    print("sesstest", session.headers)
 
     creation_request = session.post(
         "{}/api/v1/batch/process/".format(SENTINEL_HUB_HOSTNAME), data=encoded
