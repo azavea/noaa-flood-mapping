@@ -19,8 +19,8 @@ else
     GIT_COMMIT="$(git rev-parse --short HEAD)"
 fi
 
-if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
-    if [ "${1:-}" = "--help" ]; then
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    if [[ "${1:-}" == "--help" ]]; then
         usage
     else
         # Build tagged container images
