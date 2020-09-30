@@ -1,6 +1,5 @@
 FROM continuumio/miniconda3
 
-
 RUN apt update \
   && apt install -y --no-install-recommends unzip \
   && rm -rf /var/lib/apt/lists/*
@@ -20,5 +19,7 @@ COPY ./requirements-pip.txt /tmp/requirements-pip.txt
 RUN pip install -r /tmp/requirements-pip.txt
 
 WORKDIR /opt/catalogs
+
+COPY ./main.sh main.sh
 
 ENTRYPOINT [ "./main.sh" ]

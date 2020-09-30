@@ -4,7 +4,7 @@ services:
     build: ./catalogs
     image: noaa-flood-catalogs
     environment:
-      - AWS_PROFILE=noaa-flood
+      - AWS_PROFILE=${AWS_PROFILE:-noaa}
       - SENTINELHUB_OAUTH_ID
       - SENTINELHUB_OAUTH_SECRET
     volumes:
