@@ -1,8 +1,8 @@
 [BATCH]
 gpu_job_queue=queueGPU
-gpu_job_def=raster-vision-bespoke-gpu
+gpu_job_def=raster-vision-test-gpu
 cpu_job_queue=queueCPU
-cpu_job_def=raster-vision-bespoke-cpu
+cpu_job_def=raster-vision-test-cpu
 attempts=1
 [AWS_S3]
 requester_pays=True

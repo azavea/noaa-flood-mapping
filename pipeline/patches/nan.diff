@@ -1,0 +1,150 @@
+diff --git a/rastervision_core/rastervision/core/data/raster_transformer/__init__.py b/rastervision_core/rastervision/core/data/raster_transformer/__init__.py
+index 88597251..1ebc0c2d 100644
+--- a/rastervision_core/rastervision/core/data/raster_transformer/__init__.py
++++ b/rastervision_core/rastervision/core/data/raster_transformer/__init__.py
+@@ -4,3 +4,7 @@ from rastervision.core.data.raster_transformer.raster_transformer import *
+ from rastervision.core.data.raster_transformer.raster_transformer_config import *
+ from rastervision.core.data.raster_transformer.stats_transformer import *
+ from rastervision.core.data.raster_transformer.stats_transformer_config import *
++from rastervision.core.data.raster_transformer.nan_transformer import *
++from rastervision.core.data.raster_transformer.nan_transformer_config import *
++from rastervision.core.data.raster_transformer.cast_transformer import *
++from rastervision.core.data.raster_transformer.cast_transformer_config import *
+diff --git a/rastervision_core/rastervision/core/data/raster_transformer/cast_transformer.py b/rastervision_core/rastervision/core/data/raster_transformer/cast_transformer.py
+new file mode 100644
+index 00000000..a07703a4
+--- /dev/null
++++ b/rastervision_core/rastervision/core/data/raster_transformer/cast_transformer.py
+@@ -0,0 +1,39 @@
++import re
++
++from rastervision.core.data.raster_transformer.raster_transformer \
++    import RasterTransformer
++
++import numpy as np  # noqa
++
++
++class CastTransformer(RasterTransformer):
++    """Removes Cast values from float raster
++    """
++
++    def __init__(self, to_dtype: str = 'np.uint8'):
++        """Construct a new CastTransformer.
++
++        Args:
++            to_dtype: (str) Chips are casted to this dtype
++        """
++        mo = re.search(r'np\.(u|)(int|float)[0-9]+', to_dtype)
++        if mo:
++            self.to_dtype = eval(mo.group(0))
++        else:
++            raise ValueError(f'Unsupported to_dtype {to_dtype}')
++
++    def transform(self, chip, channel_order=None):
++        """Transform a chip.
++
++        Cast chip to the specified dtype.
++
++        Args:
++            chip: ndarray of shape [height, width, channels] This is assumed to already
++                have the channel_order applied to it if channel_order is set. In other
++                words, channels should be equal to len(channel_order).
++
++        Returns:
++            [height, width, channels] numpy array
++
++        """
++        return chip.astype(self.to_dtype)
+diff --git a/rastervision_core/rastervision/core/data/raster_transformer/cast_transformer_config.py b/rastervision_core/rastervision/core/data/raster_transformer/cast_transformer_config.py
+new file mode 100644
+index 00000000..c55ae708
+--- /dev/null
++++ b/rastervision_core/rastervision/core/data/raster_transformer/cast_transformer_config.py
+@@ -0,0 +1,20 @@
++from typing import Optional
++
++from rastervision.pipeline.config import register_config, Field
++from rastervision.core.data.raster_transformer.raster_transformer_config import (  # noqa
++    RasterTransformerConfig)
++from rastervision.core.data.raster_transformer.cast_transformer import (  # noqa
++    CastTransformer)
++
++
++@register_config('cast_transformer')
++class CastTransformerConfig(RasterTransformerConfig):
++    to_dtype: Optional[str] = Field(
++        'np.uint8', description=('dtype to cast raster to.'))
++
++    def update(self, pipeline=None, scene=None):
++        if pipeline is not None and self.to_dtype is None:
++            self.to_dtype = pipeline.to_dtype
++
++    def build(self):
++        return CastTransformer(to_dtype=self.to_dtype)
+diff --git a/rastervision_core/rastervision/core/data/raster_transformer/nan_transformer.py b/rastervision_core/rastervision/core/data/raster_transformer/nan_transformer.py
+new file mode 100644
+index 00000000..f4c161a6
+--- /dev/null
++++ b/rastervision_core/rastervision/core/data/raster_transformer/nan_transformer.py
+@@ -0,0 +1,35 @@
++import numpy as np
++
++from rastervision.core.data.raster_transformer.raster_transformer \
++    import RasterTransformer
++
++
++class NanTransformer(RasterTransformer):
++    """Removes NaN values from float raster
++    """
++
++    def __init__(self, to_value: float = 0.0):
++        """Construct a new NanTransformer.
++
++        Args:
++            to_value: (float) NaN values are replaced
++                with this
++        """
++        self.to_value = to_value
++
++    def transform(self, chip, channel_order=None):
++        """Transform a chip.
++
++        Removes NaN values.
++
++        Args:
++            chip: ndarray of shape [height, width, channels] This is assumed to already
++                have the channel_order applied to it if channel_order is set. In other
++                words, channels should be equal to len(channel_order).
++
++        Returns:
++            [height, width, channels] numpy array
++
++        """
++        chip[np.isnan(chip)] = self.to_value
++        return chip
+diff --git a/rastervision_core/rastervision/core/data/raster_transformer/nan_transformer_config.py b/rastervision_core/rastervision/core/data/raster_transformer/nan_transformer_config.py
+new file mode 100644
+index 00000000..6a21149a
+--- /dev/null
++++ b/rastervision_core/rastervision/core/data/raster_transformer/nan_transformer_config.py
+@@ -0,0 +1,20 @@
++from typing import Optional
++
++from rastervision.pipeline.config import register_config, Field
++from rastervision.core.data.raster_transformer.raster_transformer_config import (  # noqa
++    RasterTransformerConfig)
++from rastervision.core.data.raster_transformer.nan_transformer import (  # noqa
++    NanTransformer)
++
++
++@register_config('nan_transformer')
++class NanTransformerConfig(RasterTransformerConfig):
++    to_value: Optional[float] = Field(
++        0.0, description=('Turn all NaN values into this value.'))
++
++    def update(self, pipeline=None, scene=None):
++        if pipeline is not None and self.to_value is None:
++            self.to_value = pipeline.to_value
++
++    def build(self):
++        return NanTransformer(to_value=self.to_value)
