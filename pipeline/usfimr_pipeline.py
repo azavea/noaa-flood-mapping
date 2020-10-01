@@ -193,7 +193,7 @@ def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
     chip_options = SemanticSegmentationChipOptions(
         window_method=SemanticSegmentationWindowMethod.sliding,
         target_class_ids=[1],
-        negative_survival_prob=0.25,
+        negative_survival_prob=0.125,
         stride=chip_sz // 2)
 
     return SemanticSegmentationConfig(
