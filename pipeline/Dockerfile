@@ -11,6 +11,11 @@ COPY default /root/.rastervision/
 COPY patches/shm.diff /tmp/
 COPY patches/nan.diff /tmp/
 COPY patches/ignore_index.diff /tmp/
-RUN cd /opt/src && patch -p1 < /tmp/shm.diff && patch -p1 < /tmp/nan.diff && patch -p1 < /tmp/ignore_index.diff
+COPY patches/filter.diff /tmp/
+RUN cd /opt/src && \
+    patch -p1 < /tmp/shm.diff && \
+    patch -p1 < /tmp/nan.diff && \
+    patch -p1 < /tmp/ignore_index.diff && \
+    patch -p1 < /tmp/filter.diff
 
 CMD ["bash"]
