@@ -3,6 +3,9 @@ services:
   catalogs:
     image: "noaa-flood-catalogs:${GIT_COMMIT:-latest}"
 
+  pipeline:
+    image: "noaa-flood-pipeline:${GIT_COMMIT:-latest}"
+
   terraform:
     image: quay.io/azavea/terraform:0.12.29
     volumes:
