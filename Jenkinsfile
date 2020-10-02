@@ -8,7 +8,6 @@ node {
       checkout scm
     }
 
-    env.AWS_PROFILE = 'noaa'
     env.AWS_DEFAULT_REGION = 'us-east-1'
 
     stage('cibuild') {
@@ -23,11 +22,22 @@ node {
       // first seven characters of the revision SHA.
       stage('cipublish') {
         // Decode the ECR endpoint stored within Jenkins.
-        withCredentials([[$class: 'StringBinding',
-                credentialsId: 'NOAA_AWS_ECR_ENDPOINT',
-                variable: 'NOAA_AWS_ECR_ENDPOINT']]) {
+        withCredentials([
+          [
+            $class: 'StringBinding',
+            credentialsId: 'NOAA_AWS_ECR_ENDPOINT',
+            variable: 'NOAA_AWS_ECR_ENDPOINT'
+          ],
+          [
+            $class: 'StringBinding',
+            credentialsId: 'NOAA_AWS_DEPLOY_ROLE_ARN',
+            variable: 'NOAA_AWS_DEPLOY_ROLE_ARN'
+          ],
+        ]) {
           wrap([$class: 'AnsiColorBuildWrapper']) {
-            sh './scripts/cipublish'
+            withAWS(role: env.NOAA_AWS_DEPLOY_ROLE_ARN) {
+              sh './scripts/cipublish'
+            }
           }
         }
       }

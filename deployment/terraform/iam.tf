@@ -1,4 +1,31 @@
 #
+# Cross-account deployment role IAM resources
+#
+data "aws_iam_policy_document" "assume_deploy_role" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type = "AWS"
+      identifiers = [var.aws_azavea_account_id]
+    }
+
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role" "deploy" {
+  name               = "AzaveaDeploy"
+  assume_role_policy = data.aws_iam_policy_document.assume_deploy_role.json
+  description        = "Role assumed to execute CI based deployments for Azavea."
+}
+
+resource "aws_iam_role_policy_attachment" "deploy" {
+  role       = aws_iam_role.deploy.name
+  policy_arn = var.aws_administrator_policy_arn
+}
+
+#
 # Container Instance IAM resources
 #
 data "aws_iam_policy_document" "container_instance_ec2_assume_role" {

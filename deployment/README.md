@@ -43,6 +43,8 @@ rds_database_identifier = floodmap
 rds_database_name       = floodmap
 rds_database_username   = floodmap
 rds_database_password   = floodmap
+
+aws_azavea_account_id = "123456789012"
 ```
 
 This file lives at `s3://noaafloodmap-config-us-east-1/terraform/terraform.tfvars`.
