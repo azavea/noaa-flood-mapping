@@ -8,9 +8,28 @@ node {
       checkout scm
     }
 
+    env.AWS_PROFILE = 'noaa'
+    env.AWS_DEFAULT_REGION = 'us-east-1'
+
     stage('cibuild') {
       wrap([$class: 'AnsiColorBuildWrapper']) {
         sh './scripts/cibuild'
+      }
+    }
+
+    if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('test/') || env.BRANCH_NAME.startsWith('release/')) {
+      // Publish container images built and tested during `cibuild`
+      // to the private Amazon Container Registry tagged with the
+      // first seven characters of the revision SHA.
+      stage('cipublish') {
+        // Decode the ECR endpoint stored within Jenkins.
+        withCredentials([[$class: 'StringBinding',
+                credentialsId: 'NOAA_AWS_ECR_ENDPOINT',
+                variable: 'NOAA_AWS_ECR_ENDPOINT']]) {
+          wrap([$class: 'AnsiColorBuildWrapper']) {
+            sh './scripts/cipublish'
+          }
+        }
       }
     }
 
