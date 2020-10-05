@@ -1,10 +1,11 @@
-Fiona==1.8.13
 awscli
 boto3==1.14.20
+Fiona==1.8.13
 ipdb
 ipython==7.18.1
 pystac==0.4.0
+python-dateutil==2.8.1
 rasterio==1.1.5
 requests==2.24.0
-shapely==1.7.0
 scikit-learn==0.23.2
+shapely==1.7.0
