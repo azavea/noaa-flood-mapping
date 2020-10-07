@@ -1,9 +1,9 @@
-# Training a PyTorch Model Locally
+# Training #
 
 Build the docker container, which upgrades pystac to 0.5.2 for compatibility with the catalogs generated in [catalogs](../catalogs).
 
 ```bash
-docker build . --tag raster-vision:pytorch-pystac-b8e8c65
+docker build . --tag raster-vision:pytorch-pystac-e361661
 ```
 
 For STAC-creation instructions, please refer to [this page](../catalogs/sen1floods11-mldata/README.md) for instructions on how to build the STAC.
@@ -15,7 +15,7 @@ Start the container ensuring:
 3. that if documents are referred to using S3 URIs within the ML STAC, `~/.aws` is mounted to `/root/.aws` so that credentials are accessible within the container (if this is the case, be sure to run `aws configure` from within the container prior to running your Raster Vision job)
 
 ```bash
-docker run -it --rm -v $HOME/.aws:/root/.aws:ro -w /workdir raster-vision:pytorch-pystac-b8e8c65 bash
+docker run -it --rm -v $HOME/.aws:/root/.aws:ro -w /workdir raster-vision:pytorch-pystac-e361661 bash
 ```
 
 Within the container, run the Raster Vision, pointing the process to file `usfimr_pipeline.py`. (Remember to run `aws configure` for credentials if necessary!)
