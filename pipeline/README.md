@@ -21,5 +21,6 @@ docker run -it --rm -v $HOME/.aws:/root/.aws:ro -w /workdir raster-vision:pytorc
 Within the container, run the Raster Vision, pointing the process to file `usfimr_vector_pipeline.py`. (Remember to run `aws configure` for credentials if necessary!)
 
 ```bash
-rastervision run batch /workdir/usfimr_vector_pipeline.py -a root_uri s3://mybucket/mypath/hand/ -a catalog_root /vsitar//vsis3/mybucket/catalogs.tar/mldata_hand/catalog.json -a epochs 1
+rastervision run inprocess /workdir/usfimr_vector_pipeline.py -a root_uri s3://mybucket/mypath/ -a catalog_root /vsitar//vsis3/mybucket/catalogs.tar/mldata_hand/catalog.json -a epochs 1
+rastervision run inprocess /workdir/usfimr_raster_pipeline.py -a root_uri s3://mybucket/mypath/ -a catalog_root /vsitar/vsigzip//vsis3/mybucket/usfimr-mldata-catalog-tif.tar.gz/usfimr-mldata-catalog-tif/catalog.json -a epochs 1
 ```
