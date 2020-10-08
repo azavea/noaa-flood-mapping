@@ -14,6 +14,11 @@ data "aws_iam_policy_document" "assume_deploy_role" {
   }
 }
 
+# This role requires a trust relationship to be established with the Raster
+# Foundry AWS account. The Raster Foundry Jenkins instance profile needs to
+# have the NOAA AWS account ID added to the list of principals in its
+# attached AssumeRole policy. This will allow it to assume the cross-account
+# deploy role.
 resource "aws_iam_role" "deploy" {
   name               = "AzaveaDeploy"
   assume_role_policy = data.aws_iam_policy_document.assume_deploy_role.json
