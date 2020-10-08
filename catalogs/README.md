@@ -23,3 +23,18 @@ For more information about each subproject, check each project's README.
 If you want to build a new STAC Catalog for some data source, create a new subfolder and add an executable `main.sh` there, which serves as the entrypoint for whatever you need to do. For consistency, the STAC Catalog should be written to `<subfolder>/data/catalog`. Any data that needs to be downloaded to generate the catalog should be placed in `<subfolder>/data` and gitignored.
 
 If your project requires additional python dependencies, add them to the `requirements.txt` in this folder and rebuild the catalogs container with `docker-compose build catalogs`.
+
+## Hosted Catalogs
+
+| name                              | location                                                                                           | description                                                                          |
+| --------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| HAND                              | s3://hand-data/catalog.tar.gz                                                                      | Height Above Nearest Drainage (derived from https://cfim.ornl.gov/data/)             |
+| Mississippi monthly water         | s3://global-surface-water/monthly/mississippi-river/global-water-monthly-catalog.tar.gz            | JRC Global Surface Water monthly observations of the Mississippi river region        |
+| Sen1Floods11                      | s3://sen1floods11-data/stac-catalog.zip                                                            | Sen1Floods11 dataset (https://github.com/cloudtostreet/Sen1Floods11)                 |
+| Sen1Floods11 s1weak ML            | s3://sen1floods11-data/mldata_s1weak_sen1.tar.gz                                                   | Sen1Floods11 imagery + labels (weakly trained s1 labels)                             |
+| Sen1Floods11 s2weak ML            | s3://sen1floods11-data/mldata_s2weak_sen1.tar.gz                                                   | Sen1Floods11 imagery + labels (weakly trained s2 labels)                             |
+| Sen1Floods11 training w/ HAND     | s3://sen1floods11-data/mldata_hand_sen1.tar.gz                                                     | Sen1Floods11 imagery with HAND + Sen1Floods11 labels                                 |
+| Copernicus EMSR                   | https://github.com/azavea/noaa-flood-mapping/files/5279206/sentinel2-cems-rapid-mapping-floods.zip | Copernicus Emergency Management Service early warning system (floods)                |
+| GLOFIMR Correlated SAR            | s3://glofimr-sar-4326/glofimr-sar-catalog.zip                                                      | S1 SAR imagery corresponding to flood IDs 1, 2, 3, 15, and 16 of the GLOFIMR dataset |
+| GLOFIMR + SAR ML (vector)         | s3://usfimr-s1-mldata/usfimr-s1-mldata-catalog_seed42.tar.gz                                       | S1 SAR imagery + GLOFIMR vector labels                                               |
+| GLOFIMR and JRC + SAR ML (raster) | s3://jrc-fimr-rasterized-labels/usfimr-mldata-catalog-tif.tar.gz                                   | S1 SAR imagery + GLOFIMR and >50% occurence global surface water raster labels       |
