@@ -4,7 +4,8 @@
 
 ## Scripts
 
-| Name                    | Description                                                 |
-| ----------------------- | ------------------------------------------------------------|
-| `cibuild`               | Build application for staging or a release.                 |
-| `infra`                 | Execute Terraform subcommands with remote state management. |
+| Name                    | Description                                                   |
+| ----------------------- | --------------------------------------------------------------|
+| `cibuild`               | Build application for staging or a release.                   |
+| `cipublish`             | Publish container images to Elastic Container Registry (ECR). |
+| `infra`                 | Execute Terraform subcommands with remote state management.   |

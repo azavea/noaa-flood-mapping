@@ -301,6 +301,15 @@ variable "franklin_migrations_memory" {
   type = number
 }
 
+variable "aws_raster_foundry_account_id" {
+  type = string
+}
+
+variable "aws_administrator_policy_arn" {
+  default = "arn:aws:iam::aws:policy/AdministratorAccess"
+  type    = string
+}
+
 variable "aws_spot_fleet_service_role_policy_arn" {
   default = "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole"
   type    = string

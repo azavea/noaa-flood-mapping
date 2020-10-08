@@ -1,8 +1,8 @@
 version: '2.4'
 services:
   catalogs:
-    build: ./catalogs
     image: noaa-flood-catalogs
+    build: ./catalogs
     environment:
       - AWS_PROFILE=${AWS_PROFILE:-noaa}
       - SENTINELHUB_OAUTH_ID
@@ -10,3 +10,7 @@ services:
     volumes:
       - ./catalogs:/opt/catalogs
       - $HOME/.aws:/root/.aws:ro
+
+  pipeline:
+    image: noaa-flood-pipeline
+    build: ./pipeline
