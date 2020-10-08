@@ -33,7 +33,6 @@ def pystac_workaround(uri):
         uri = uri.replace('/vsitar/vsigzip/', '/vsitar/vsigzip//')
 
     return uri
-    return VsiFileSystem.read_str(uri)
 
 
 STAC_IO.read_text_method = \
@@ -93,6 +92,7 @@ def image_sources(item: Item, channel_order: [int]):
 
 
 def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
+
     # get all links to labels
     label_items = [
         link.resolve_stac_object().target for link in item.links
@@ -162,9 +162,9 @@ def build_dataset_from_catalog(catalog: Catalog, channel_order: [int],
     )
 
 
-def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
+def get_config(runner, root_uri, catalog_root, epochs='20', batch_size='8'):
     # Read STAC catalog
-    catalog: Catalog = Catalog.from_file(catalog_root)
+    catalog: Catalog = Catalog.from_file(pystac_workaround(catalog_root))
 
     # TODO: pull desired channels from root collection properties
     channel_ordering: [int] = [0, 1, 2]
@@ -177,14 +177,12 @@ def get_config(runner, root_uri, catalog_root, epochs='20', batch_sz='8'):
                                          class_config)
 
     chip_sz = 512
-    epochs = int(epochs)
-    batch_sz = int(batch_sz)
 
     backend = PyTorchSemanticSegmentationConfig(
         model=SemanticSegmentationModelConfig(backbone=Backbone.resnet50),
         solver=SolverConfig(lr=1e-4,
-                            num_epochs=epochs,
-                            batch_sz=batch_sz,
+                            num_epochs=int(epochs),
+                            batch_sz=int(batch_size),
                             ignore_last_class=True),
         log_tensorboard=False,
         run_tensorboard=False,

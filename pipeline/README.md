@@ -18,8 +18,8 @@ Start the container ensuring:
 docker run -it --rm -v $HOME/.aws:/root/.aws:ro -w /workdir raster-vision:pytorch-pystac-e361661 bash
 ```
 
-Within the container, run the Raster Vision, pointing the process to file `usfimr_pipeline.py`. (Remember to run `aws configure` for credentials if necessary!)
+Within the container, run the Raster Vision, pointing the process to file `usfimr_vector_pipeline.py`. (Remember to run `aws configure` for credentials if necessary!)
 
 ```bash
-rastervision run batch /workdir/usfimr_pipeline.py -a root_uri s3://mybucket/mypath/hand/ -a catalog_root /vsitar//vsis3/mybucket/catalogs.tar/mldata_hand/catalog.json -a epochs 1
+rastervision run batch /workdir/usfimr_vector_pipeline.py -a root_uri s3://mybucket/mypath/hand/ -a catalog_root /vsitar//vsis3/mybucket/catalogs.tar/mldata_hand/catalog.json -a epochs 1
 ```
