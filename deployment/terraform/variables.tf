@@ -301,7 +301,7 @@ variable "franklin_migrations_memory" {
   type = number
 }
 
-variable "aws_azavea_account_id" {
+variable "aws_raster_foundry_account_id" {
   type = string
 }
 

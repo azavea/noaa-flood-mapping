@@ -7,7 +7,7 @@ data "aws_iam_policy_document" "assume_deploy_role" {
 
     principals {
       type = "AWS"
-      identifiers = [var.aws_azavea_account_id]
+      identifiers = [var.aws_raster_foundry_account_id]
     }
 
     actions = ["sts:AssumeRole"]
