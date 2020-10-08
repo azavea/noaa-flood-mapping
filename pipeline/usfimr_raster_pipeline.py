@@ -11,10 +11,7 @@ from rastervision.core.backend import *
 from rastervision.core.data import *
 from rastervision.core.data.raster_source.multi_raster_source_config import (
     MultiRasterSourceConfig, SubRasterSourceConfig)
-from rastervision.core.data.raster_transformer.nan_transformer import \
-    NanTransformer
-from rastervision.core.data.raster_transformer.nan_transformer_config import \
-    NanTransformerConfig
+from rastervision.core.data.raster_transformer import *
 from rastervision.core.rv_pipeline import *
 from rastervision.gdal_vsi.vsi_file_system import VsiFileSystem
 from rastervision.pytorch_backend import *
@@ -40,7 +37,7 @@ STAC_IO.read_text_method = \
 STAC_IO.write_text_method = noop_write_method
 
 
-def image_sources(item: Item, channel_order: [int]):
+def image_sources(item: Item, use_hand: bool):
     vh_keys = [key for key in item.assets.keys() if key.startswith("VH")]
     vh_keys.sort()
     vh_uris = [item.assets[key].href for key in vh_keys]
@@ -75,23 +72,36 @@ def image_sources(item: Item, channel_order: [int]):
         ],
         channel_order=[0])
 
-    raster_source = MultiRasterSourceConfig(
-        raster_sources=[
-            SubRasterSourceConfig(raster_source=vh_source,
-                                  target_channels=[0]),
-            SubRasterSourceConfig(raster_source=vv_source,
-                                  target_channels=[1]),
-            SubRasterSourceConfig(raster_source=hand_source,
-                                  target_channels=[2]),
-        ],
-        force_same_dtype=True,
-        allow_different_extents=True,
-    )
+    if use_hand:
+        raster_source = MultiRasterSourceConfig(
+            raster_sources=[
+                SubRasterSourceConfig(raster_source=vh_source,
+                                      target_channels=[0]),
+                SubRasterSourceConfig(raster_source=vv_source,
+                                      target_channels=[1]),
+                SubRasterSourceConfig(raster_source=hand_source,
+                                      target_channels=[2]),
+            ],
+            force_same_dtype=True,
+            allow_different_extents=True,
+        )
+    elif not use_hand:
+        raster_source = MultiRasterSourceConfig(
+            raster_sources=[
+                SubRasterSourceConfig(raster_source=vh_source,
+                                      target_channels=[0]),
+                SubRasterSourceConfig(raster_source=vv_source,
+                                      target_channels=[1]),
+            ],
+            force_same_dtype=True,
+            allow_different_extents=True,
+        )
 
     return raster_source
 
 
-def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
+def make_scenes_from_item(item: Item, use_hand: bool,
+                          three_class: bool) -> [SceneConfig]:
 
     # get all links to labels
     label_items = [
@@ -100,7 +110,7 @@ def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
     ]
 
     # image source configs
-    image_source = image_sources(item, channel_order)
+    image_source = image_sources(item, use_hand)
 
     scene_configs = []
     # iterate through links, building a scene config per link
@@ -108,7 +118,14 @@ def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
         label_asset = label_item.assets["labels"]
         label_uri = label_asset.href.replace('s3://', '/vsis3/')
 
-        raster_label_source = RasterioSourceConfig(uris=[label_asset.href])
+        if three_class:
+            raster_label_source = RasterioSourceConfig(uris=[label_asset.href])
+        else:
+            raster_label_source = RasterioSourceConfig(
+                uris=[label_asset.href],
+                transformers=[ReclassTransformerConfig(mapping={2: 1})],
+            )
+
         label_source = SemanticSegmentationLabelSourceConfig(
             raster_source=raster_label_source)
 
@@ -120,9 +137,9 @@ def make_scenes_from_item(item: Item, channel_order: [int]) -> [SceneConfig]:
     return scene_configs
 
 
-def make_scenes(collection: Collection, channel_order: [int]):
+def make_scenes(collection: Collection, use_hand: bool, three_class: bool):
     scene_groups = [
-        make_scenes_from_item(item, channel_order)
+        make_scenes_from_item(item, use_hand, three_class)
         for item in collection.get_items()
     ]
     scenes = []
@@ -132,16 +149,22 @@ def make_scenes(collection: Collection, channel_order: [int]):
     return scenes
 
 
-def build_dataset_from_catalog(catalog: Catalog, channel_order: [int],
-                               class_config: ClassConfig) -> DatasetConfig:
+def build_dataset_from_catalog(catalog: Catalog, class_config: ClassConfig,
+                               use_hand: bool,
+                               three_class: bool) -> DatasetConfig:
 
     # Read taining scenes from STAC
     train_collection = catalog.get_child(id="train")
-    train_scenes = make_scenes(train_collection, channel_order)
+    train_scenes = make_scenes(train_collection, use_hand, three_class)
 
     # Read validation scenes from STAC
     validation_collection = catalog.get_child(id="validation")
-    validation_scenes = make_scenes(validation_collection, channel_order)
+    validation_scenes = make_scenes(validation_collection, use_hand,
+                                    three_class)
+
+    # Read test scenes from STAC
+    test_collection = catalog.get_child(id="test")
+    test_scenes = make_scenes(test_collection, use_hand, three_class)
 
     return DatasetConfig(
         class_config=class_config,
@@ -150,40 +173,55 @@ def build_dataset_from_catalog(catalog: Catalog, channel_order: [int],
     )
 
 
-def get_config(runner, root_uri, catalog_root, epochs='20', batch_size='8'):
+def get_config(runner,
+               root_uri,
+               catalog_root,
+               epochs='20',
+               batch_size='8',
+               use_hand=False,
+               three_class=False):
+
+    use_hand = (use_hand != False)
+    three_class = (three_class != False)
 
     # Read STAC catalog
-    catalog: Catalog = Catalog.from_file(catalog_root)
+    catalog: Catalog = Catalog.from_file(pystac_workaround(catalog_root))
 
-    # TODO: pull desired channels from root collection properties
-    channel_ordering: [int] = [0, 1, 1]
+    if three_class:
+        class_config: ClassConfig = ClassConfig(
+            names=["background", "water", "flood"],
+            colors=["brown", "blue", "purple"])
+    else:
+        class_config: ClassConfig = ClassConfig(names=["background", "water"],
+                                                colors=["brown", "blue"])
 
-    # TODO: pull ClassConfig info from root collection properties
-    class_config: ClassConfig = ClassConfig(
-        names=["background", "water", "flood"],
-        colors=["brown", "blue", "purple"])
+    dataset = build_dataset_from_catalog(catalog, class_config, use_hand,
+                                         three_class)
 
-    dataset = build_dataset_from_catalog(catalog, channel_ordering,
-                                         class_config)
-
-    chip_sz = 512
+    chip_size = 300
     backend = PyTorchSemanticSegmentationConfig(
         model=SemanticSegmentationModelConfig(backbone=Backbone.resnet50),
         solver=SolverConfig(lr=1e-4,
                             num_epochs=int(epochs),
-                            batch_sz=int(batch_size)),
+                            batch_sz=int(batch_size),
+                            ignore_last_class=True),
+        log_tensorboard=False,
+        run_tensorboard=False,
+        num_workers=0,
     )
     chip_options = SemanticSegmentationChipOptions(
         window_method=SemanticSegmentationWindowMethod.sliding,
-        chips_per_scene=1,
-        stride=chip_sz)
+        negative_survival_prob=0.0,
+        target_class_ids=[0, 1, 2],
+        target_count_threshold=chip_size**2,
+        stride=chip_size // 2)
 
     return SemanticSegmentationConfig(
         root_uri=root_uri,
         dataset=dataset,
         backend=backend,
-        train_chip_sz=chip_sz,
-        predict_chip_sz=chip_sz,
+        train_chip_sz=chip_size,
+        predict_chip_sz=chip_size,
         chip_options=chip_options,
         img_format='npy',
         label_format='png',
