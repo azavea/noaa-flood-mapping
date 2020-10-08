@@ -28,7 +28,7 @@ object RasterizeFimrFlood
             .option[Path](
               "jrc-file",
               short = "j",
-              help = "The jrc dataset to"
+              help = "The jrc dataset to rasterize"
             )
 
         val jrcOccurrenceThresholdOpt =

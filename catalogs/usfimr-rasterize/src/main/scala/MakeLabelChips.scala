@@ -46,11 +46,11 @@ object MakeLabelChips
         (catalogOpt, rasterizedLabelsOpt, outputOpt).mapN {
           (catalogDir, rasterizedLabelsDir, outputDir) =>
             val labels = Map(
-              1 -> s"$rasterizedLabelsDir/01.tif",
-              2 -> s"$rasterizedLabelsDir/02.tif",
-              3 -> s"$rasterizedLabelsDir/03.tif",
-              15 -> s"$rasterizedLabelsDir/15.tif",
-              16 -> s"$rasterizedLabelsDir/16.tif"
+              1 -> s"$rasterizedLabelsDir/jrc-usfimr-rasterized-01.tif",
+              2 -> s"$rasterizedLabelsDir/jrc-usfimr-rasterized-02.tif",
+              3 -> s"$rasterizedLabelsDir/jrc-usfimr-rasterized-03.tif",
+              15 -> s"$rasterizedLabelsDir/jrc-usfimr-rasterized-15.tif",
+              16 -> s"$rasterizedLabelsDir/jrc-usfimr-rasterized-16.tif"
             )
 
             val train = new File(s"$catalogDir/train")
@@ -94,16 +94,20 @@ object MakeLabelChips
               val labelPath = labels(labelNumber)
 
               val labelRs = RasterSource(labelPath)
-              labelRs.reprojectToGrid(
+              val newRs = labelRs.reprojectToRegion(
                 maskRs.crs,
-                GridExtent(maskRs.extent, maskRs.cols, maskRs.rows)
+                RasterExtent(
+                  maskRs.extent,
+                  maskRs.cols.toInt,
+                  maskRs.rows.toInt
+                )
               )
 
               val chipName =
                 catalogEntry.toString.split("/").last.split('.').head
               println(chipName)
 
-              val raster = labelRs.read(maskRs.extent).get
+              val raster = newRs.read(maskRs.extent).get
 
               val outputTiff = GeoTiff(raster.tile, raster.extent, maskRs.crs)
               outputTiff.write(s"$outputDir/$chipName.tif")
