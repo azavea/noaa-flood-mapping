@@ -176,8 +176,9 @@ def build_dataset_from_catalog(catalog: Catalog, class_config: ClassConfig,
 def get_config(runner,
                root_uri,
                catalog_root,
-               epochs='20',
-               batch_size='8',
+               epochs=20,
+               batch_size=16,
+               gamma=0,
                use_hand=False,
                three_class=False):
 
@@ -191,14 +192,27 @@ def get_config(runner,
         class_config: ClassConfig = ClassConfig(
             names=["background", "water", "flood"],
             colors=["brown", "blue", "purple"])
-        target_class_ids = [0, 1, 2]
+        target_class_ids = [1, 2]
+        alphas = [0.1, 0.4, 0.5, 0.0]
     else:
         class_config: ClassConfig = ClassConfig(names=["background", "water"],
                                                 colors=["brown", "blue"])
-        target_class_ids = [0, 1]
+        target_class_ids = [1]
+        alphas = [0.1, 0.9, 0.0]
 
     dataset = build_dataset_from_catalog(catalog, class_config, use_hand,
                                          three_class)
+
+    external_loss_def = ExternalModuleConfig(
+        github_repo='AdeelH/pytorch-multi-class-focal-loss',
+        name='focal_loss',
+        entrypoint='focal_loss',
+        force_reload=False,
+        entrypoint_kwargs={
+            'alpha': alphas,
+            'gamma': int(gamma),
+            'ignore_index': 2 if not three_class else 3,
+        })
 
     chip_size = 300
     backend = PyTorchSemanticSegmentationConfig(
@@ -206,7 +220,9 @@ def get_config(runner,
         solver=SolverConfig(lr=1e-4,
                             num_epochs=int(epochs),
                             batch_sz=int(batch_size),
-                            ignore_last_class=True),
+                            one_cycle=True,
+                            ignore_last_class='force',
+                            external_loss_def=external_loss_def),
         log_tensorboard=False,
         run_tensorboard=False,
         num_workers=0,
