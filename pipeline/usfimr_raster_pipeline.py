@@ -191,9 +191,11 @@ def get_config(runner,
         class_config: ClassConfig = ClassConfig(
             names=["background", "water", "flood"],
             colors=["brown", "blue", "purple"])
+        target_class_ids = [0, 1, 2]
     else:
         class_config: ClassConfig = ClassConfig(names=["background", "water"],
                                                 colors=["brown", "blue"])
+        target_class_ids = [0, 1]
 
     dataset = build_dataset_from_catalog(catalog, class_config, use_hand,
                                          three_class)
@@ -212,7 +214,7 @@ def get_config(runner,
     chip_options = SemanticSegmentationChipOptions(
         window_method=SemanticSegmentationWindowMethod.sliding,
         negative_survival_prob=0.0,
-        target_class_ids=[0, 1, 2],
+        target_class_ids=target_class_ids,
         target_count_threshold=chip_size**2,
         stride=chip_size // 2)
 
