@@ -54,21 +54,21 @@ def image_sources(item: Item, use_hand: bool):
         uris=vh_uris,
         transformers=[
             NanTransformerConfig(),
-            CastTransformerConfig(to_dtype='np.float16')
+            CastTransformerConfig(to_dtype='np.float32')
         ],
         channel_order=[0])
     vv_source = RasterioSourceConfig(
         uris=vv_uris,
         transformers=[
             NanTransformerConfig(),
-            CastTransformerConfig(to_dtype='np.float16')
+            CastTransformerConfig(to_dtype='np.float32')
         ],
         channel_order=[0])
     hand_source = RasterioSourceConfig(
         uris=hand_uris,
         transformers=[
             NanTransformerConfig(),
-            CastTransformerConfig(to_dtype='np.float16')
+            CastTransformerConfig(to_dtype='np.float32')
         ],
         channel_order=[0])
 
@@ -182,8 +182,8 @@ def get_config(runner,
                use_hand=False,
                three_class=False):
 
-    use_hand = (use_hand != False)
-    three_class = (three_class != False)
+    use_hand = (use_hand != False) and (use_hand != 'False')
+    three_class = (three_class != False) and (three_class != 'False')
 
     # Read STAC catalog
     catalog: Catalog = Catalog.from_file(pystac_workaround(catalog_root))
@@ -204,7 +204,7 @@ def get_config(runner,
                                          three_class)
 
     external_loss_def = ExternalModuleConfig(
-        github_repo='AdeelH/pytorch-multi-class-focal-loss',
+        github_repo='jamesmcclain/pytorch-multi-class-focal-loss:ignore',
         name='focal_loss',
         entrypoint='focal_loss',
         force_reload=False,
