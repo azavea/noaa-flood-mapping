@@ -1,4 +1,4 @@
-FROM quay.io/azavea/raster-vision:pytorch-e361661
+FROM quay.io/azavea/raster-vision:pytorch-de47ed3
 
 RUN pip3 install --upgrade pystac==0.5.2 && apt-get install -y nano
 
@@ -9,12 +9,7 @@ COPY usfimr_raster_pipeline.py /workdir/
 COPY default /root/.rastervision/
 
 # Patches
-COPY patches/4gb.diff /tmp/
-COPY patches/remap.diff /tmp/
-COPY patches/channels.diff /tmp/
-RUN cd /opt/src && \
-    patch -p1 < /tmp/4gb.diff && \
-    patch -p1 < /tmp/remap.diff && \
-    patch -p1 < /tmp/channels.diff
+COPY patches/ignore.diff /tmp/
+RUN cd /opt/src && patch -p1 < /tmp/ignore.diff
 
 CMD ["bash"]
