@@ -231,7 +231,7 @@ def get_config(runner,
         window_method=SemanticSegmentationWindowMethod.sliding,
         negative_survival_prob=0.0,
         target_class_ids=target_class_ids,
-        target_count_threshold=chip_size**2,
+        target_count_threshold=int(0.05 * chip_size**2),
         stride=chip_size // 2)
 
     return SemanticSegmentationConfig(
