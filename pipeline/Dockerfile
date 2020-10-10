@@ -10,6 +10,9 @@ COPY default /root/.rastervision/
 
 # Patches
 COPY patches/ignore.diff /tmp/
-RUN cd /opt/src && patch -p1 < /tmp/ignore.diff
+COPY patches/predict.diff /tmp/
+RUN cd /opt/src && \
+    patch -p1 < /tmp/ignore.diff && \
+    patch -p1 < /tmp/predict.diff
 
 CMD ["bash"]
