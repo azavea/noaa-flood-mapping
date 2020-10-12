@@ -169,7 +169,7 @@ def build_dataset_from_catalog(catalog: Catalog, class_config: ClassConfig,
     return DatasetConfig(
         class_config=class_config,
         train_scenes=train_scenes,
-        validation_scenes=validation_scenes,
+        validation_scenes=(validation_scenes + test_scenes),
     )
 
 
