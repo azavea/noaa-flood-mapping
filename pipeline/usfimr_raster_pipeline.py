@@ -177,7 +177,7 @@ def get_config(runner,
                catalog_root,
                epochs=20,
                batch_size=16,
-               gamma=0,
+               gamma=0.0,
                use_hand=False,
                three_class=False,
                chip_uri=None):
@@ -210,7 +210,7 @@ def get_config(runner,
         force_reload=False,
         entrypoint_kwargs={
             'alpha': alphas,
-            'gamma': int(gamma),
+            'gamma': float(gamma),
             'ignore_index': 2 if not three_class else 3,
         })
 
