@@ -1,26 +1,24 @@
 # Training #
 
-Build the docker container, which upgrades pystac to 0.5.2 for compatibility with the catalogs generated in [catalogs](../catalogs).
+## Build Image ##
 
 ```bash
 docker build . --tag raster-vision:pytorch-pystac-de47ed3
 ```
 
+## Build STAC if Necessary ##
+
 For STAC-creation instructions, please refer to [this page](../catalogs/sen1floods11-mldata/README.md) for instructions on how to build the STAC.
 
-Start the container ensuring:
-
-1. that environment variables are appropriately set to generate Raster Vision configuration.
-2. that volume mounts are set such that `pipeline.py` and the machine learning STAC is accessible from within the container. Make sure that the `CATALOG_ROOT_URI` variable points to the machine learning STAC root mounted within the container.
-3. that if documents are referred to using S3 URIs within the ML STAC, `~/.aws` is mounted to `/root/.aws` so that credentials are accessible within the container (if this is the case, be sure to run `aws configure` from within the container prior to running your Raster Vision job)
+## Start Container ##
 
 ```bash
 docker run -it --rm -v $HOME/.aws:/root/.aws:ro -w /workdir raster-vision:pytorch-pystac-de47ed3 bash
 ```
 
-Within the container, run the Raster Vision, pointing the process to file `usfimr_vector_pipeline.py`. (Remember to run `aws configure` for credentials if necessary!)
+## Run Pipeline ##
 
 ```bash
-rastervision run inprocess /workdir/usfimr_vector_pipeline.py -a root_uri /tmp/usfimr/ -a catalog_root /vsitar/vsis3/mybucket/catalogs.tar/mldata_hand/catalog.json -a epochs 1
-rastervision run inprocess /workdir/usfimr_raster_pipeline.py -a root_uri /tmp/usfimr/ -a catalog_root /vsitar/vsigzip/vsis3/jrc-fimr-rasterized-labels/version2/usfimr-mldata-catalog-tif.tar.gz/usfimr-mldata-catalog-tif/catalog.json -a epochs 7 -a use_hand False -a three_class False -a gamma 0
+rastervision run inprocess /workdir/usfimr_vector_pipeline.py -a root_uri /tmp/usfimr/ -a catalog_root /vsitar/vsigzip/vsis3/usfimr-s1-mldata/usfimr-s1-mldata-catalog_seed42.tar.gz/mldata-catalog/catalog.json
+rastervision run inprocess /workdir/usfimr_raster_pipeline.py -a root_uri /tmp/usfimr/ -a catalog_root /vsitar/vsigzip/vsis3/jrc-fimr-rasterized-labels/version2/usfimr-mldata-catalog-tif.tar.gz/usfimr-mldata-catalog-tif/catalog.json
 ```
