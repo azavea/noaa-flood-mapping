@@ -28,7 +28,6 @@ def pystac_workaround(uri):
     if uri.startswith(
             '/vsitar/vsigzip/') and not uri.startswith('/vsitar/vsigzip//'):
         uri = uri.replace('/vsitar/vsigzip/', '/vsitar/vsigzip//')
-    uri = uri.replace('/usfimr_sar_labels/', '/usfimr_sar_labels_tif/')
 
     return uri
 
