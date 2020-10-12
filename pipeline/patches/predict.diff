@@ -1,0 +1,88 @@
+diff --git a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_chip_classification_config.py b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_chip_classification_config.py
+index c0877864..f7b14490 100644
+--- a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_chip_classification_config.py
++++ b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_chip_classification_config.py
+@@ -35,7 +35,8 @@ class PyTorchChipClassificationConfig(PyTorchLearnerBackendConfig):
+             test_mode=self.test_mode,
+             output_uri=pipeline.train_uri,
+             log_tensorboard=self.log_tensorboard,
+-            run_tensorboard=self.run_tensorboard)
++            run_tensorboard=self.run_tensorboard,
++            predict_normalize=self.predict_normalize)
+         learner.update()
+         learner.validate_config()
+         return learner
+diff --git a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_learner_backend_config.py b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_learner_backend_config.py
+index 7173347a..ea9f3a54 100644
+--- a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_learner_backend_config.py
++++ b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_learner_backend_config.py
+@@ -13,6 +13,11 @@ from rastervision.pytorch_learner.utils import validate_albumentation_transform
+ class PyTorchLearnerBackendConfig(BackendConfig):
+     model: ModelConfig
+     solver: SolverConfig
++    predict_normalize: bool = Field(
++        True,
++        description=
++        'Whether to divide imagery by 255 (normalize) before passing to the model.'
++    )
+     log_tensorboard: bool = Field(
+         True, description='If True, log events to Tensorboard log files.')
+     run_tensorboard: bool = Field(
+diff --git a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_object_detection_config.py b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_object_detection_config.py
+index 92b59f03..6fcafe84 100644
+--- a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_object_detection_config.py
++++ b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_object_detection_config.py
+@@ -35,7 +35,8 @@ class PyTorchObjectDetectionConfig(PyTorchLearnerBackendConfig):
+             test_mode=self.test_mode,
+             output_uri=pipeline.train_uri,
+             log_tensorboard=self.log_tensorboard,
+-            run_tensorboard=self.run_tensorboard)
++            run_tensorboard=self.run_tensorboard,
++            predict_normalize=self.predict_normalize)
+         learner.update()
+         return learner
+ 
+diff --git a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_semantic_segmentation_config.py b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_semantic_segmentation_config.py
+index 5cd1def3..b675d2d2 100644
+--- a/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_semantic_segmentation_config.py
++++ b/rastervision_pytorch_backend/rastervision/pytorch_backend/pytorch_semantic_segmentation_config.py
+@@ -38,7 +38,8 @@ class PyTorchSemanticSegmentationConfig(PyTorchLearnerBackendConfig):
+             test_mode=self.test_mode,
+             output_uri=pipeline.train_uri,
+             log_tensorboard=self.log_tensorboard,
+-            run_tensorboard=self.run_tensorboard)
++            run_tensorboard=self.run_tensorboard,
++            predict_normalize=self.predict_normalize)
+         learner.update()
+         learner.validate_config()
+         return learner
+diff --git a/rastervision_pytorch_learner/rastervision/pytorch_learner/learner.py b/rastervision_pytorch_learner/rastervision/pytorch_learner/learner.py
+index 3af61769..0825dd62 100644
+--- a/rastervision_pytorch_learner/rastervision/pytorch_learner/learner.py
++++ b/rastervision_pytorch_learner/rastervision/pytorch_learner/learner.py
+@@ -715,7 +715,8 @@ class Learner(ABC):
+         x = torch.tensor(x)
+         x = self.to_batch(x)
+         x = x.permute((0, 3, 1, 2))
+-        out = self.predict(x, normalize=True, raw_out=raw_out)
++        out = self.predict(
++            x, normalize=self.cfg.predict_normalize, raw_out=raw_out)
+         return self.output_to_numpy(out)
+ 
+     def predict_dataloader(self,
+diff --git a/rastervision_pytorch_learner/rastervision/pytorch_learner/learner_config.py b/rastervision_pytorch_learner/rastervision/pytorch_learner/learner_config.py
+index 62f6461c..3600adf6 100644
+--- a/rastervision_pytorch_learner/rastervision/pytorch_learner/learner_config.py
++++ b/rastervision_pytorch_learner/rastervision/pytorch_learner/learner_config.py
+@@ -319,6 +319,11 @@ class LearnerConfig(Config):
+     solver: SolverConfig
+     data: DataConfig
+ 
++    predict_normalize: bool = Field(
++        True,
++        description=
++        'Whether to divide imagery by 255 (normalize) before passing to the model.'
++    )
+     predict_mode: bool = Field(
+         False,
+         description='If True, skips training, loads model, and does final eval.'
