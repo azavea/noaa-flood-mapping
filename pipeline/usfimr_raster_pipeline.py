@@ -83,6 +83,7 @@ def image_sources(item: Item, use_hand: bool):
             ],
             force_same_dtype=True,
             allow_different_extents=True,
+            transformers=[StatsTransformerConfig()],
         )
     elif not use_hand:
         raster_source = MultiRasterSourceConfig(
@@ -94,6 +95,7 @@ def image_sources(item: Item, use_hand: bool):
             ],
             force_same_dtype=True,
             allow_different_extents=True,
+            transformers=[StatsTransformerConfig()],
         )
 
     return raster_source
@@ -180,7 +182,8 @@ def get_config(runner,
                gamma=0.0,
                use_hand=False,
                three_class=False,
-               chip_uri=None):
+               chip_uri=None,
+               analyze_uri=None):
 
     use_hand = (use_hand != False) and (use_hand != 'False')
     three_class = (three_class != False) and (three_class != 'False')
@@ -225,7 +228,7 @@ def get_config(runner,
                             external_loss_def=external_loss_def),
         log_tensorboard=False,
         run_tensorboard=False,
-        predict_normalize=False,
+        predict_normalize=True,
         num_workers=0,
     )
     chip_options = SemanticSegmentationChipOptions(
@@ -235,8 +238,21 @@ def get_config(runner,
         target_count_threshold=int(0.05 * chip_size**2),
         stride=chip_size // 2)
 
-    if chip_uri is not None:
+    if analyze_uri is not None and chip_uri is None:
         return SemanticSegmentationConfig(
+            analyze_uri=analyze_uri,
+            root_uri=root_uri,
+            dataset=dataset,
+            backend=backend,
+            train_chip_sz=chip_size,
+            predict_chip_sz=chip_size,
+            chip_options=chip_options,
+            img_format='npy',
+            label_format='png',
+        )
+    elif analyze_uri is not None and chip_uri is not None:
+        return SemanticSegmentationConfig(
+            analyze_uri=analyze_uri,
             chip_uri=chip_uri,
             root_uri=root_uri,
             dataset=dataset,
