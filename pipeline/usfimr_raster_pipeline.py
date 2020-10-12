@@ -180,7 +180,8 @@ def get_config(runner,
                batch_size=16,
                gamma=0,
                use_hand=False,
-               three_class=False):
+               three_class=False,
+               chip_uri=None):
 
     use_hand = (use_hand != False) and (use_hand != 'False')
     three_class = (three_class != False) and (three_class != 'False')
@@ -235,13 +236,26 @@ def get_config(runner,
         target_count_threshold=int(0.05 * chip_size**2),
         stride=chip_size // 2)
 
-    return SemanticSegmentationConfig(
-        root_uri=root_uri,
-        dataset=dataset,
-        backend=backend,
-        train_chip_sz=chip_size,
-        predict_chip_sz=chip_size,
-        chip_options=chip_options,
-        img_format='npy',
-        label_format='png',
-    )
+    if chip_uri is not None:
+        return SemanticSegmentationConfig(
+            chip_uri=chip_uri,
+            root_uri=root_uri,
+            dataset=dataset,
+            backend=backend,
+            train_chip_sz=chip_size,
+            predict_chip_sz=chip_size,
+            chip_options=chip_options,
+            img_format='npy',
+            label_format='png',
+        )
+    else:
+        return SemanticSegmentationConfig(
+            root_uri=root_uri,
+            dataset=dataset,
+            backend=backend,
+            train_chip_sz=chip_size,
+            predict_chip_sz=chip_size,
+            chip_options=chip_options,
+            img_format='npy',
+            label_format='png',
+        )
