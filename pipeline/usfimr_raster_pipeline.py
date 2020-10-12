@@ -193,18 +193,18 @@ def get_config(runner,
             names=["background", "water", "flood"],
             colors=["brown", "blue", "purple"])
         target_class_ids = [1, 2]
-        alphas = [0.1, 0.4, 0.5, 0.0]
+        alphas = [0.1, 0.4, 0.5]
     else:
         class_config: ClassConfig = ClassConfig(names=["background", "water"],
                                                 colors=["brown", "blue"])
         target_class_ids = [1]
-        alphas = [0.1, 0.9, 0.0]
+        alphas = [0.1, 0.9]
 
     dataset = build_dataset_from_catalog(catalog, class_config, use_hand,
                                          three_class)
 
     external_loss_def = ExternalModuleConfig(
-        github_repo='jamesmcclain/pytorch-multi-class-focal-loss:ignore',
+        github_repo='AdeelH/pytorch-multi-class-focal-loss',
         name='focal_loss',
         entrypoint='focal_loss',
         force_reload=False,
