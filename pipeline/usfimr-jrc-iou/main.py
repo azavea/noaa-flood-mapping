@@ -18,7 +18,7 @@ for each directory in s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307 
 
 ## Notes:
 
-(1) Naming convention for TT, TF, FT, FF: First T/F is flag for whether HAND was used, Second T/F is flag for whether training is 3 class (perm water + flood water + other) or not (2 class, water + other).
+(1) Naming convention for TT, TF, FT, FF: First T/F is flag for whether HAND was used, Second T/F is flag for whether training is 3 class (perm water (1) + flood water (2) + other) or not (2 class, water (1) + other).
 
 (2) For fimr predictions, use s3://jrc-fimr-rasterized-labels/version2, for sen1floods11 predictionse use sen1floods11-data hand labeled tifs
 
@@ -32,7 +32,9 @@ This file uses the noaa-catalogs conda env. Conda install <root_dir>/catalogs/re
 import argparse
 from collections import namedtuple
 import csv
+import logging
 import os
+import sys
 from urllib.parse import urlparse
 
 import boto3
@@ -42,19 +44,24 @@ from rasterio.enums import Resampling
 from rasterio.vrt import WarpedVRT
 from sklearn.metrics import f1_score, jaccard_score
 
-DEFAULT_OUTPUT_CSV = os.path.join("results", "iou-f1-stats.csv")
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
+
+DEFAULT_OUTPUT_DIR = "results"
 
 NLCD_TIF_URI = (
     "s3://geotrellis-test/courage-services/nlcd/NLCD_2016_Land_Cover_L48_20190424.tif"
 )
 
-Experiment = namedtuple("Experiment", ["id", "s3_dir", "ground_truth_dir"])
+Experiment = namedtuple("Experiment", ["id", "s3_dir", "ground_truth_dir", "labels"])
 
 EXPERIMENTS = [
     Experiment(
         "SEN1FLOODS11_HAND",
         "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/SEN1FLOODS11_HAND/",
-        "",
+        "s3://sen1floods11-data/QC_v2/",
+        labels=[1],
     ),
     # No predictions for this experiment...
     # Experiment(
@@ -65,50 +72,57 @@ EXPERIMENTS = [
     Experiment(
         "SEN1FLOODS11_S2WEAK",
         "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/SEN1FLOODS11_S2WEAK/",
-        "",
+        "s3://sen1floods11-data/QC_v2/",
+        [1],
     ),
     Experiment(
         "USFIMR_FF",
         "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_FF/",
         "s3://jrc-fimr-rasterized-labels/version2/",
+        [1],
     ),
     Experiment(
         "USFIMR_TF",
         "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_TF/",
         "s3://jrc-fimr-rasterized-labels/version2/",
+        [1],
     ),
     Experiment(
         "USFIMR_FT",
         "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_FT/",
         "s3://jrc-fimr-rasterized-labels/version2/",
+        [1, 2],
     ),
     Experiment(
         "USFIMR_TT",
         "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_TT/",
         "s3://jrc-fimr-rasterized-labels/version2/",
+        [1, 2],
     ),
     Experiment(
         "USFIMR_TF_analyzed",
         "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_TF_analyzed/",
         "s3://jrc-fimr-rasterized-labels/version2/",
+        [1],
     ),
     Experiment(
         "USFIMR_TT_analyzed",
         "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_TT_analyzed/",
         "s3://jrc-fimr-rasterized-labels/version2/",
+        [1, 2],
     ),
 ]
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--output-csv", type=str, default=DEFAULT_OUTPUT_CSV)
+    parser.add_argument("-o", "--output-dir", type=str, default=DEFAULT_OUTPUT_DIR)
     args = parser.parse_args()
 
     client = boto3.client("s3")
 
     for experiment in EXPERIMENTS:
-        print("Processing Experiment: {}".format(experiment.id))
+        logger.info("Processing Experiment: {}".format(experiment.id))
         experiment_url = urlparse(experiment.s3_dir)
 
         list_result = client.list_objects_v2(
@@ -124,7 +138,10 @@ def main():
             print("WARNING: No predictions for {}. Continuing...".format(experiment))
             continue
 
-        with open(args.output_csv, "w") as fp_csv:
+        output_csv = os.path.join(
+            args.output_dir, "{}-iou-f1.csv".format(experiment.id)
+        )
+        with open(output_csv, "w") as fp_csv:
             csv_fieldnames = [
                 "chip_id",
                 "f1_all",
@@ -139,10 +156,18 @@ def main():
 
             for obj in s3_keys:
                 chip_id = os.path.basename(obj["Key"])
+
                 prediction_tif_uri = "s3://{}/{}".format(
                     experiment_url.hostname, obj["Key"]
                 )
-                truth_tif_uri = os.path.join(experiment.ground_truth_dir, chip_id)
+                logger.info("\tprediction: {}".format(prediction_tif_uri))
+
+                if chip_id.startswith("SEN1FLOODS11"):
+                    truth_tif_uri = os.path.join(experiment.ground_truth_dir, chip_id)
+                else:
+                    chip_name = chip_id.replace("_S1.tif", "_QC.tif")
+                    truth_tif_uri = os.path.join(experiment.ground_truth_dir, chip_name)
+                logger.info("\ttruth: {}".format(truth_tif_uri))
 
                 with rasterio.open(prediction_tif_uri) as ds_p, rasterio.open(
                     truth_tif_uri
@@ -160,23 +185,42 @@ def main():
                     t_band = ds_t.read(1).flatten()
                     nlcd_band = nlcd_vrt.read(1).flatten()
 
-                nlcd_urban_mask = np.ma.masked_inside(nlcd_band, 21, 24)
-                p_band_urban = np.ma.array(p_band, mask=nlcd_urban_mask.mask)
-                p_band_not_urban = np.logical_not(p_band_urban)
-                t_band_urban = np.ma.array(t_band, mask=nlcd_urban_mask.mask)
-                t_band_not_urban = np.logical_not(t_band_urban)
+                assert len(p_band) == len(t_band)
+                assert len(p_band) == len(nlcd_band)
 
-                # TODO: Properly compute these scores by setting labels based on training classes
+                nlcd_urban_mask = np.ma.masked_outside(nlcd_band, 21, 24).mask
+                p_band_urban = np.ma.array(p_band, mask=nlcd_urban_mask).filled(-999)
+                t_band_urban = np.ma.array(t_band, mask=nlcd_urban_mask).filled(-999)
+
+                nlcd_not_urban_mask = np.ma.masked_inside(nlcd_band, 21, 24).mask
+                p_band_not_urban = np.ma.array(p_band, mask=nlcd_not_urban_mask).filled(
+                    -999
+                )
+                t_band_not_urban = np.ma.array(t_band, mask=nlcd_not_urban_mask).filled(
+                    -999
+                )
+
+                labels = experiment.labels
                 scores = {
                     "chip_id": chip_id,
-                    "f1_all": f1_score(t_band, p_band),
-                    "f1_urban": f1_score(t_band_urban, p_band_urban),
-                    "f1_not_urban": f1_score(t_band_not_urban, p_band_not_urban),
-                    "iou_all": jaccard_score(t_band, p_band),
-                    "iou_urban": jaccard_score(t_band_urban, p_band_urban),
-                    "iou_not_urban": jaccard_score(t_band_not_urban, p_band_not_urban),
+                    "f1_all": f1_score(t_band, p_band, labels=labels, average=None),
+                    "f1_urban": f1_score(
+                        t_band_urban, p_band_urban, labels=labels, average=None
+                    ),
+                    "f1_not_urban": f1_score(
+                        t_band_not_urban, p_band_not_urban, labels=labels, average=None
+                    ),
+                    "iou_all": jaccard_score(
+                        t_band, p_band, labels=labels, average=None
+                    ),
+                    "iou_urban": jaccard_score(
+                        t_band_urban, p_band_urban, labels=labels, average=None
+                    ),
+                    "iou_not_urban": jaccard_score(
+                        t_band_not_urban, p_band_not_urban, labels=labels, average=None
+                    ),
                 }
-
+                logger.info(scores)
                 writer.writerow(scores)
 
 
