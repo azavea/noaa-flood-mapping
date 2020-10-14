@@ -54,6 +54,8 @@ NLCD_TIF_URI = (
     "s3://geotrellis-test/courage-services/nlcd/NLCD_2016_Land_Cover_L48_20190424.tif"
 )
 
+NODATA = -999
+
 Experiment = namedtuple("Experiment", ["id", "s3_dir", "ground_truth_dir", "labels"])
 
 EXPERIMENTS = [
@@ -179,6 +181,7 @@ def main():
                         width=ds_p.width,
                         resampling=Resampling.nearest,
                         transform=ds_p.transform,
+                        nodata=NODATA,
                     )
 
                     p_band = ds_p.read(1).flatten()
@@ -189,15 +192,15 @@ def main():
                 assert len(p_band) == len(nlcd_band)
 
                 nlcd_urban_mask = np.ma.masked_outside(nlcd_band, 21, 24).mask
-                p_band_urban = np.ma.array(p_band, mask=nlcd_urban_mask).filled(-999)
-                t_band_urban = np.ma.array(t_band, mask=nlcd_urban_mask).filled(-999)
+                p_band_urban = np.ma.array(p_band, mask=nlcd_urban_mask).filled(NODATA)
+                t_band_urban = np.ma.array(t_band, mask=nlcd_urban_mask).filled(NODATA)
 
                 nlcd_not_urban_mask = np.ma.masked_inside(nlcd_band, 21, 24).mask
                 p_band_not_urban = np.ma.array(p_band, mask=nlcd_not_urban_mask).filled(
-                    -999
+                    NODATA
                 )
                 t_band_not_urban = np.ma.array(t_band, mask=nlcd_not_urban_mask).filled(
-                    -999
+                    NODATA
                 )
 
                 labels = experiment.labels
@@ -220,7 +223,7 @@ def main():
                         t_band_not_urban, p_band_not_urban, labels=labels, average=None
                     ),
                 }
-                logger.info(scores)
+                logger.info("\t\t{}".format(scores))
                 writer.writerow(scores)
 
 
