@@ -28,7 +28,6 @@ def pystac_workaround(uri):
     if uri.startswith(
             '/vsitar/vsigzip/') and not uri.startswith('/vsitar/vsigzip//'):
         uri = uri.replace('/vsitar/vsigzip/', '/vsitar/vsigzip//')
-    uri = uri.replace('/usfimr_sar_labels/', '/usfimr_sar_labels_tif/')
 
     return uri
 
@@ -84,6 +83,7 @@ def image_sources(item: Item, use_hand: bool):
             ],
             force_same_dtype=True,
             allow_different_extents=True,
+            transformers=[StatsTransformerConfig()],
         )
     elif not use_hand:
         raster_source = MultiRasterSourceConfig(
@@ -95,6 +95,7 @@ def image_sources(item: Item, use_hand: bool):
             ],
             force_same_dtype=True,
             allow_different_extents=True,
+            transformers=[StatsTransformerConfig()],
         )
 
     return raster_source
@@ -169,7 +170,7 @@ def build_dataset_from_catalog(catalog: Catalog, class_config: ClassConfig,
     return DatasetConfig(
         class_config=class_config,
         train_scenes=train_scenes,
-        validation_scenes=validation_scenes,
+        validation_scenes=(validation_scenes + test_scenes),
     )
 
 
@@ -178,9 +179,11 @@ def get_config(runner,
                catalog_root,
                epochs=20,
                batch_size=16,
-               gamma=0,
+               gamma=0.0,
                use_hand=False,
-               three_class=False):
+               three_class=False,
+               chip_uri=None,
+               analyze_uri=None):
 
     use_hand = (use_hand != False) and (use_hand != 'False')
     three_class = (three_class != False) and (three_class != 'False')
@@ -193,24 +196,24 @@ def get_config(runner,
             names=["background", "water", "flood"],
             colors=["brown", "blue", "purple"])
         target_class_ids = [1, 2]
-        alphas = [0.1, 0.4, 0.5, 0.0]
+        alphas = [0.1, 0.4, 0.5]
     else:
         class_config: ClassConfig = ClassConfig(names=["background", "water"],
                                                 colors=["brown", "blue"])
         target_class_ids = [1]
-        alphas = [0.1, 0.9, 0.0]
+        alphas = [0.1, 0.9]
 
     dataset = build_dataset_from_catalog(catalog, class_config, use_hand,
                                          three_class)
 
     external_loss_def = ExternalModuleConfig(
-        github_repo='jamesmcclain/pytorch-multi-class-focal-loss:ignore',
+        github_repo='AdeelH/pytorch-multi-class-focal-loss',
         name='focal_loss',
         entrypoint='focal_loss',
         force_reload=False,
         entrypoint_kwargs={
             'alpha': alphas,
-            'gamma': int(gamma),
+            'gamma': float(gamma),
             'ignore_index': 2 if not three_class else 3,
         })
 
@@ -225,7 +228,7 @@ def get_config(runner,
                             external_loss_def=external_loss_def),
         log_tensorboard=False,
         run_tensorboard=False,
-        predict_normalize=False,
+        predict_normalize=True,
         num_workers=0,
     )
     chip_options = SemanticSegmentationChipOptions(
@@ -235,13 +238,39 @@ def get_config(runner,
         target_count_threshold=int(0.05 * chip_size**2),
         stride=chip_size // 2)
 
-    return SemanticSegmentationConfig(
-        root_uri=root_uri,
-        dataset=dataset,
-        backend=backend,
-        train_chip_sz=chip_size,
-        predict_chip_sz=chip_size,
-        chip_options=chip_options,
-        img_format='npy',
-        label_format='png',
-    )
+    if analyze_uri is not None and chip_uri is None:
+        return SemanticSegmentationConfig(
+            analyze_uri=analyze_uri,
+            root_uri=root_uri,
+            dataset=dataset,
+            backend=backend,
+            train_chip_sz=chip_size,
+            predict_chip_sz=chip_size,
+            chip_options=chip_options,
+            img_format='npy',
+            label_format='png',
+        )
+    elif analyze_uri is not None and chip_uri is not None:
+        return SemanticSegmentationConfig(
+            analyze_uri=analyze_uri,
+            chip_uri=chip_uri,
+            root_uri=root_uri,
+            dataset=dataset,
+            backend=backend,
+            train_chip_sz=chip_size,
+            predict_chip_sz=chip_size,
+            chip_options=chip_options,
+            img_format='npy',
+            label_format='png',
+        )
+    else:
+        return SemanticSegmentationConfig(
+            root_uri=root_uri,
+            dataset=dataset,
+            backend=backend,
+            train_chip_sz=chip_size,
+            predict_chip_sz=chip_size,
+            chip_options=chip_options,
+            img_format='npy',
+            label_format='png',
+        )
