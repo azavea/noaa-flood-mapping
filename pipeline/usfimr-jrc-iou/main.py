@@ -4,29 +4,25 @@ Pseudo-code:
 
 for each directory in s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307 (1)
     for each tif in ./predict
-        [x] load prediction tif from dir
-        [x] load ground truth tif from elsewhere (2)
-        [x] load nlcd tif and coregister a VRT matching the prediction tif chip (3)
-        [x] create nlcd mask for urban 21 - 24 or not
-        [x] convert all above tifs / masks into 1d numpy arrays
-        [ ] Compute f1 score for prediction vs ground truth
-        [ ] Compute IoU for prediction vs ground truth
-        [ ] Compute f1 + IoU only over urban mask
-        [ ] Compute f1 + IoU for inverse of urban mask
-        [x] Write all computed scores to a row in CSV for the chip id
+        load prediction tif
+        load ground truth tif
+        load nlcd tif and coregister a VRT matching the prediction tif chip
+        create nlcd mask for urban 21 - 24 or not
+        convert all above tifs / masks into 1d numpy arrays
+        Compute f1 score for prediction vs ground truth
+        Compute IoU for prediction vs ground truth
+        Compute f1 + IoU only over urban mask
+        Compute f1 + IoU for inverse of urban mask
+        Write all computed scores to a row in CSV for the chip id
 
 
 ## Notes:
 
 (1) Naming convention for TT, TF, FT, FF: First T/F is flag for whether HAND was used, Second T/F is flag for whether training is 3 class (perm water (1) + flood water (2) + other) or not (2 class, water (1) + other).
 
-(2) For fimr predictions, use s3://jrc-fimr-rasterized-labels/version2, for sen1floods11 predictionse use sen1floods11-data hand labeled tifs
-
-(3) s3://geotrellis-test/courage-services/nlcd
-
 ## Running the Code
 
-This file uses the noaa-catalogs conda env. Conda install <root_dir>/catalogs/requirements-conda.txt into a local conda env then run `python3 main.py` to generate the stats csv.
+This file uses the noaa-catalogs conda env. Conda install <root_dir>/catalogs/requirements-conda.txt into a local conda env then run `python3 main.py` to generate the stats csv. Ensure you've send AWS_PROFILE in your shell so that you have access to the necessary s3 directories.
 
 """
 import argparse
@@ -164,6 +160,8 @@ def main():
                 )
                 logger.info("\tprediction: {}".format(prediction_tif_uri))
 
+                # TODO: Encode this in Experiment somehow
+                # Replace chip S1 qualifier with QC to match filenames in ground truth dir
                 if chip_id.startswith("SEN1FLOODS11"):
                     truth_tif_uri = os.path.join(experiment.ground_truth_dir, chip_id)
                 else:
@@ -190,6 +188,12 @@ def main():
 
                 assert len(p_band) == len(t_band)
                 assert len(p_band) == len(nlcd_band)
+
+                # TODO: Encode this in Experiment somehow...
+                # For two class USFIMR experiments, collapse ground truth three class
+                # labels for water to two class: 2 (flood) + 1 (perm) -> 1 (water)
+                if experiment.id.startswith("USFIMR") and len(experiment.labels) == 1:
+                    t_band = np.where(t_band == 2, 1, t_band)
 
                 nlcd_urban_mask = np.ma.masked_outside(nlcd_band, 21, 24).mask
                 p_band_urban = np.ma.array(p_band, mask=nlcd_urban_mask).filled(NODATA)
