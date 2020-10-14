@@ -182,6 +182,7 @@ def get_config(runner,
                gamma=0.0,
                use_hand=False,
                three_class=False,
+               train_uri=None,
                chip_uri=None,
                analyze_uri=None):
 
@@ -238,7 +239,23 @@ def get_config(runner,
         target_count_threshold=int(0.05 * chip_size**2),
         stride=chip_size // 2)
 
-    if analyze_uri is not None and chip_uri is None:
+    if train_uri is not None:
+        assert analyze_uri is not None
+        assert chip_uri is not None
+        return SemanticSegmentationConfig(
+            analyze_uri=analyze_uri,
+            chip_uri=chip_uri,
+            train_uri=train_uri,
+            root_uri=root_uri,
+            dataset=dataset,
+            backend=backend,
+            train_chip_sz=chip_size,
+            predict_chip_sz=chip_size,
+            chip_options=chip_options,
+            img_format='npy',
+            label_format='png',
+        )
+    elif analyze_uri is not None and chip_uri is None:
         return SemanticSegmentationConfig(
             analyze_uri=analyze_uri,
             root_uri=root_uri,
