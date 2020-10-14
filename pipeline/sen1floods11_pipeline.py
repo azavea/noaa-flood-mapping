@@ -107,7 +107,7 @@ def build_dataset_from_catalog(catalog: Catalog, channel_order: [int],
 
     return DatasetConfig(
         class_config=class_config,
-        train_scenes=(train_scenes + validation_scenes),
+        train_scenes=train_scenes,
         validation_scenes=(test_scenes_0 + test_scenes_1),
     )
 
