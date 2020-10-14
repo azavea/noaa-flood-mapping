@@ -57,19 +57,19 @@ Experiment = namedtuple("Experiment", ["id", "s3_dir", "ground_truth_dir", "labe
 EXPERIMENTS = [
     Experiment(
         "SEN1FLOODS11_HAND",
-        "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/SEN1FLOODS11_HAND/",
+        "s3://noaafloodmap-data-us-east-1/jmcclain/October_14_2020/SEN1FLOODS11_HAND/",
         "s3://sen1floods11-data/QC_v2/",
-        labels=[1],
+        [1],
     ),
-    # No predictions for this experiment...
-    # Experiment(
-    #     "SEN1FLOODS11_S1WEAK",
-    #     "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/SEN1FLOODS11_S1WEAK/",
-    #     "",
-    # ),
+    Experiment(
+        "SEN1FLOODS11_S1WEAK",
+        "s3://noaafloodmap-data-us-east-1/jmcclain/October_14_2020/SEN1FLOODS11_S1WEAK/",
+        "s3://sen1floods11-data/QC_v2/",
+        [1],
+    ),
     Experiment(
         "SEN1FLOODS11_S2WEAK",
-        "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/SEN1FLOODS11_S2WEAK/",
+        "s3://noaafloodmap-data-us-east-1/jmcclain/October_14_2020/SEN1FLOODS11_S2WEAK/",
         "s3://sen1floods11-data/QC_v2/",
         [1],
     ),
@@ -80,34 +80,34 @@ EXPERIMENTS = [
         [1],
     ),
     Experiment(
-        "USFIMR_TF",
-        "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_TF/",
+        "USFIMR_FT_permanent",
+        "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_FT/",
         "s3://jrc-fimr-rasterized-labels/version2/",
         [1],
     ),
     Experiment(
-        "USFIMR_FT",
+        "USFIMR_FT_flood",
         "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_FT/",
         "s3://jrc-fimr-rasterized-labels/version2/",
-        [1, 2],
+        [2],
     ),
     Experiment(
-        "USFIMR_TT",
-        "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_TT/",
-        "s3://jrc-fimr-rasterized-labels/version2/",
-        [1, 2],
-    ),
-    Experiment(
-        "USFIMR_TF_analyzed",
+        "USFIMR_TF",
         "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_TF_analyzed/",
         "s3://jrc-fimr-rasterized-labels/version2/",
         [1],
     ),
     Experiment(
-        "USFIMR_TT_analyzed",
+        "USFIMR_TT_permanent",
         "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_TT_analyzed/",
         "s3://jrc-fimr-rasterized-labels/version2/",
-        [1, 2],
+        [1],
+    ),
+    Experiment(
+        "USFIMR_TT_flood",
+        "s3://noaafloodmap-data-us-east-1/jmcclain/October_13_1307/USFIMR_TT_analyzed/",
+        "s3://jrc-fimr-rasterized-labels/version2/",
+        [2],
     ),
 ]
 
@@ -199,7 +199,7 @@ def main():
                 # TODO: Encode this in Experiment somehow...
                 # For two class USFIMR experiments, collapse ground truth three class
                 # labels for water to two class: 2 (flood) + 1 (perm) -> 1 (water)
-                if experiment.id.startswith("USFIMR") and len(experiment.labels) == 1:
+                if experiment.id.startswith("USFIMR") and 'flood' not in experiment.id and 'permanent' not in experiment.id:
                     t_band = np.where(t_band == 2, 1, t_band)
 
                 nlcd_urban_mask = np.ma.masked_outside(nlcd_band, 21, 24).mask
