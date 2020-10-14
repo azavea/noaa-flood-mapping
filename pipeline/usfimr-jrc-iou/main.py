@@ -115,6 +115,9 @@ EXPERIMENTS = [
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--output-dir", type=str, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument(
+        "--overwrite", action="store_true", help="Overwrite existing CSVs in output dir"
+    )
     args = parser.parse_args()
 
     client = boto3.client("s3")
@@ -122,6 +125,13 @@ def main():
     for experiment in EXPERIMENTS:
         logger.info("Processing Experiment: {}".format(experiment.id))
         experiment_url = urlparse(experiment.s3_dir)
+
+        output_csv = os.path.join(
+            args.output_dir, "{}-iou-f1.csv".format(experiment.id)
+        )
+        if not args.overwrite and os.path.isfile(output_csv):
+            logger.info("SKIPPING Experiment {}. Already exists".format(experiment.id))
+            continue
 
         list_result = client.list_objects_v2(
             Bucket=experiment_url.hostname,
@@ -136,9 +146,6 @@ def main():
             print("WARNING: No predictions for {}. Continuing...".format(experiment))
             continue
 
-        output_csv = os.path.join(
-            args.output_dir, "{}-iou-f1.csv".format(experiment.id)
-        )
         with open(output_csv, "w") as fp_csv:
             csv_fieldnames = [
                 "chip_id",
@@ -227,8 +234,14 @@ def main():
                         t_band_not_urban, p_band_not_urban, labels=labels, average=None
                     ),
                 }
-                logger.info("\t\t{}".format(scores))
+                logger.debug("\t\t{}".format(scores))
                 writer.writerow(scores)
+
+        client.upload_file(
+            output_csv,
+            experiment_url.hostname,
+            os.path.join(experiment_url.path, "stats-iou-f1.csv"),
+        )
 
 
 if __name__ == "__main__":
