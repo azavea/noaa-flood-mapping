@@ -1,0 +1,13 @@
+diff --git a/rastervision_core/rastervision/core/data/scene_config.py b/rastervision_core/rastervision/core/data/scene_config.py
+index d139e199..638313e3 100644
+--- a/rastervision_core/rastervision/core/data/scene_config.py
++++ b/rastervision_core/rastervision/core/data/scene_config.py
+@@ -15,7 +15,7 @@ class SceneConfig(Config):
+     """Config for a Scene which comprises the raster data and labels for an AOI."""
+     id: str
+     raster_source: RasterSourceConfig
+-    label_source: LabelSourceConfig
++    label_source: Optional[LabelSourceConfig] = None
+     label_store: Optional[LabelStoreConfig] = None
+     aoi_uris: Optional[List[str]] = Field(
+         None,
