@@ -148,3 +148,7 @@ cython_debug/
 *.csv
 
 .vscode
+
+# Scala
+.metals
+.scalafmt.conf
